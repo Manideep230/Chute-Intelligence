@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useRoleAccess } from '../hooks/useRoleAccess';
 
-const API = 'http://localhost:5000';
+const API = '/_/backend';
 
 interface TimelineEntry {
   timestamp: string;

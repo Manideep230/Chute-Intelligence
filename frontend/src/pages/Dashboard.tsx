@@ -272,7 +272,7 @@ export const Dashboard: React.FC = () => {
     setReportError(null);
     try {
       const res = await fetch(
-        `http://localhost:5000/reports/${activeChuteId}?format=${fmt === 'pdf' ? 'json' : 'csv'}`,
+        `/_/backend/reports/${activeChuteId}?format=${fmt === 'pdf' ? 'json' : 'csv'}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!res.ok) throw new Error('Report generation failed');
@@ -328,7 +328,7 @@ export const Dashboard: React.FC = () => {
     if (!activeChuteId) return;
     setCalibLoading(true); setCalibError(null);
     try {
-      const res = await fetch(`http://localhost:5000/industry/chutes/${activeChuteId}/calibrate`, {
+      const res = await fetch(`/_/backend/industry/chutes/${activeChuteId}/calibrate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -402,13 +402,13 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchChutes = async () => {
       try {
-        const res = await fetch('http://localhost:5000/industry/chutes', {
+        const res = await fetch('/_/backend/industry/chutes', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Failed to fetch chutes');
 
-        const plRes = await fetch('http://localhost:5000/industry/plants', {
+        const plRes = await fetch('/_/backend/industry/plants', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const plData = await plRes.json();
@@ -444,7 +444,7 @@ export const Dashboard: React.FC = () => {
 
     const fetchChuteDetail = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/industry/chutes/${activeChuteId}/detail`, {
+        const res = await fetch(`/_/backend/industry/chutes/${activeChuteId}/detail`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -464,7 +464,7 @@ export const Dashboard: React.FC = () => {
     if (!activeChuteId) return;
     const fetchKpis = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/industry/chutes/${activeChuteId}/kpis`, {
+        const res = await fetch(`/_/backend/industry/chutes/${activeChuteId}/kpis`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
@@ -574,7 +574,7 @@ export const Dashboard: React.FC = () => {
   // Load Audit Logs, Maintenance, Users
   const loadAuditLogs = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:5000/industry/audit-logs', {
+      const res = await fetch('/_/backend/industry/audit-logs', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -586,7 +586,7 @@ export const Dashboard: React.FC = () => {
 
   const loadMaintenanceTickets = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:5000/industry/maintenance', {
+      const res = await fetch('/_/backend/industry/maintenance', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -599,7 +599,7 @@ export const Dashboard: React.FC = () => {
   const loadAllUsers = useCallback(async () => {
     setUserLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/auth/users', {
+      const res = await fetch('/_/backend/auth/users', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -618,7 +618,7 @@ export const Dashboard: React.FC = () => {
 
   const handleUpdateUserRole = async (targetId: string, newRole: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/auth/users/${targetId}/role`, {
+      const res = await fetch(`/_/backend/auth/users/${targetId}/role`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ role: newRole }),
@@ -636,7 +636,7 @@ export const Dashboard: React.FC = () => {
 
   const loadAssignments = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:5000/industry/assignments', {
+      const res = await fetch('/_/backend/industry/assignments', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -651,7 +651,7 @@ export const Dashboard: React.FC = () => {
     setUserSuccess(null);
     setUserError(null);
     try {
-      const res = await fetch('http://localhost:5000/auth/users', {
+      const res = await fetch('/_/backend/auth/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -678,7 +678,7 @@ export const Dashboard: React.FC = () => {
 
   const handleToggleUserActive = async (targetId: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/auth/users/${targetId}/toggle-active`, {
+      const res = await fetch(`/_/backend/auth/users/${targetId}/toggle-active`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -696,7 +696,7 @@ export const Dashboard: React.FC = () => {
   const handleDeleteUser = async (targetId: string) => {
     if (!window.confirm('Are you sure you want to permanently delete this user? This will also remove all their assignments.')) return;
     try {
-      const res = await fetch(`http://localhost:5000/auth/users/${targetId}`, {
+      const res = await fetch(`/_/backend/auth/users/${targetId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -724,7 +724,7 @@ export const Dashboard: React.FC = () => {
         body.chuteId = assignChuteId;
       }
 
-      const res = await fetch('http://localhost:5000/industry/assignments', {
+      const res = await fetch('/_/backend/industry/assignments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -745,7 +745,7 @@ export const Dashboard: React.FC = () => {
   const handleDeleteAssignment = async (id: string) => {
     if (!window.confirm('Are you sure you want to revoke this assignment?')) return;
     try {
-      const res = await fetch(`http://localhost:5000/industry/assignments/${id}/delete`, {
+      const res = await fetch(`/_/backend/industry/assignments/${id}/delete`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -775,12 +775,12 @@ export const Dashboard: React.FC = () => {
 
   const handleResolveAlert = async (alertId: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/industry/alerts/${alertId}/resolve`, {
+      const res = await fetch(`/_/backend/industry/alerts/${alertId}/resolve`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
-        const detRes = await fetch(`http://localhost:5000/industry/chutes/${activeChuteId}/detail`, {
+        const detRes = await fetch(`/_/backend/industry/chutes/${activeChuteId}/detail`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const detData = await detRes.json();
@@ -795,7 +795,7 @@ export const Dashboard: React.FC = () => {
   const handleManualValveBlast = async (valveNumber: number) => {
     if (!activeChuteId) return;
     try {
-      const res = await fetch(`http://localhost:5000/industry/chutes/${activeChuteId}/blast`, {
+      const res = await fetch(`/_/backend/industry/chutes/${activeChuteId}/blast`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -823,7 +823,7 @@ export const Dashboard: React.FC = () => {
     setBlastFiring(true);
     setBlastResult(null);
     try {
-      const res = await fetch(`http://localhost:5000/industry/chutes/${activeChuteId}/blast`, {
+      const res = await fetch(`/_/backend/industry/chutes/${activeChuteId}/blast`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ blasterNumber: blastSelectedGroup }),
@@ -880,7 +880,7 @@ export const Dashboard: React.FC = () => {
     setQrLoading(true);
     setQrClaimResult(null);
     try {
-      const res = await fetch(`http://localhost:5000/industry/chutes/${activeChuteId}/qr-token`, {
+      const res = await fetch(`/_/backend/industry/chutes/${activeChuteId}/qr-token`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -900,7 +900,7 @@ export const Dashboard: React.FC = () => {
     setQrClaimLoading(true);
     setQrClaimResult(null);
     try {
-      const res = await fetch(`http://localhost:5000/industry/chutes/${activeChuteId}/claim-device`, {
+      const res = await fetch(`/_/backend/industry/chutes/${activeChuteId}/claim-device`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ deviceId: qrDeviceId.trim() }),
@@ -923,7 +923,7 @@ export const Dashboard: React.FC = () => {
     setDbResetLoading(true);
     setDbResetResult(null);
     try {
-      const res = await fetch('http://localhost:5000/admin/reset-database', {
+      const res = await fetch('/_/backend/admin/reset-database', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ confirm: true, confirmPhrase: 'RESET' }),
@@ -947,7 +947,7 @@ export const Dashboard: React.FC = () => {
   const handleToggleSimulationMode = async (mode: boolean) => {
     if (!activeChuteId) return;
     try {
-      const res = await fetch(`http://localhost:5000/industry/chutes/${activeChuteId}/simulation-mode`, {
+      const res = await fetch(`/_/backend/industry/chutes/${activeChuteId}/simulation-mode`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -983,7 +983,7 @@ export const Dashboard: React.FC = () => {
     try {
       // Zone → path mapping: Zones 1&4 = LEFT_SLANT (\), Zones 2&3 = RIGHT_SLANT (/)
       const path: 'LEFT_SLANT' | 'RIGHT_SLANT' = (injZone === 1 || injZone === 4) ? 'LEFT_SLANT' : 'RIGHT_SLANT';
-      const res = await fetch(`http://localhost:5000/industry/chutes/${activeChuteId}/simulation-mode`, {
+      const res = await fetch(`/_/backend/industry/chutes/${activeChuteId}/simulation-mode`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1030,7 +1030,7 @@ export const Dashboard: React.FC = () => {
         assetId = (compressor as any)._id || activeChuteId;
       }
 
-      const res = await fetch('http://localhost:5000/industry/maintenance', {
+      const res = await fetch('/_/backend/industry/maintenance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ chuteId: activeChuteId, assetType: selectedAssetType, assetId, description: newTicketDesc }),
@@ -1048,14 +1048,14 @@ export const Dashboard: React.FC = () => {
   // Resolve Maintenance ticket
   const handleResolveTicket = async (ticketId: string) => {
     try {
-      const res = await fetch(`http://localhost:5000/industry/maintenance/${ticketId}/status`, {
+      const res = await fetch(`/_/backend/industry/maintenance/${ticketId}/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ status: 'Resolved' }),
       });
       if (res.ok) {
         loadMaintenanceTickets();
-        const detRes = await fetch(`http://localhost:5000/industry/chutes/${activeChuteId}/detail`, {
+        const detRes = await fetch(`/_/backend/industry/chutes/${activeChuteId}/detail`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const detData = await detRes.json();
@@ -1071,7 +1071,7 @@ export const Dashboard: React.FC = () => {
     e.preventDefault();
     setPhoneError(null); setPhoneInfo(null);
     try {
-      const res = await fetch('http://localhost:5000/auth/request-phone-change', {
+      const res = await fetch('/_/backend/auth/request-phone-change', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ newPhone }),
@@ -1090,7 +1090,7 @@ export const Dashboard: React.FC = () => {
     e.preventDefault();
     setPhoneError(null);
     try {
-      const res = await fetch('http://localhost:5000/auth/verify-phone-change', {
+      const res = await fetch('/_/backend/auth/verify-phone-change', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ oldPhoneOtp, newPhoneOtp }),
@@ -1129,7 +1129,7 @@ export const Dashboard: React.FC = () => {
       if (regLat && regLng) {
         body.gpsCoordinates = { lat: parseFloat(regLat), lng: parseFloat(regLng) };
       }
-      const res = await fetch('http://localhost:5000/industry/chutes', {
+      const res = await fetch('/_/backend/industry/chutes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(body),
@@ -1138,7 +1138,7 @@ export const Dashboard: React.FC = () => {
       if (!res.ok) throw new Error(data.message || 'Registration failed');
       setRegSuccess(`Chute registered! Code: ${data.chuteCode}`);
       setRegName('');
-      const chutesRes = await fetch('http://localhost:5000/industry/chutes', { headers: { 'Authorization': `Bearer ${token}` } });
+      const chutesRes = await fetch('/_/backend/industry/chutes', { headers: { 'Authorization': `Bearer ${token}` } });
       const chutesData = await chutesRes.json();
       if (chutesRes.ok) {
         const mapped = chutesData.map((c: any) => {
@@ -1169,7 +1169,7 @@ export const Dashboard: React.FC = () => {
         description: plantRegDesc,
       };
       if (plantRegCode) body.plantCode = plantRegCode.toUpperCase();
-      const res = await fetch('http://localhost:5000/industry/plants', {
+      const res = await fetch('/_/backend/industry/plants', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(body),
@@ -1180,7 +1180,7 @@ export const Dashboard: React.FC = () => {
       setPlantRegName(''); setPlantRegCode(''); setPlantRegOwner('');
       setPlantRegContact(''); setPlantRegEmail(''); setPlantRegAddress(''); setPlantRegDesc('');
       // Refresh plants list
-      const plRes = await fetch('http://localhost:5000/industry/plants', { headers: { 'Authorization': `Bearer ${token}` } });
+      const plRes = await fetch('/_/backend/industry/plants', { headers: { 'Authorization': `Bearer ${token}` } });
       const plData = await plRes.json();
       if (plRes.ok) setPlantsList(plData);
     } catch (err: any) {
@@ -1213,7 +1213,7 @@ export const Dashboard: React.FC = () => {
     setEditPlantLoading(true);
     setEditPlantError(null);
     try {
-      const res = await fetch(`http://localhost:5000/industry/plants/${editingPlant._id}`, {
+      const res = await fetch(`/_/backend/industry/plants/${editingPlant._id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(editPlantFields),
@@ -1221,7 +1221,7 @@ export const Dashboard: React.FC = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Update failed');
       setEditPlantModalOpen(false);
-      const plRes = await fetch('http://localhost:5000/industry/plants', { headers: { 'Authorization': `Bearer ${token}` } });
+      const plRes = await fetch('/_/backend/industry/plants', { headers: { 'Authorization': `Bearer ${token}` } });
       const plData = await plRes.json();
       if (plRes.ok) setPlantsList(plData);
     } catch (err: any) {
@@ -1236,12 +1236,12 @@ export const Dashboard: React.FC = () => {
     const action = plant.isActive ? 'disable' : 'enable';
     if (!confirm(`Are you sure you want to ${action} plant "${plant.name}"?`)) return;
     try {
-      const res = await fetch(`http://localhost:5000/industry/plants/${plant._id}/${action}`, {
+      const res = await fetch(`/_/backend/industry/plants/${plant._id}/${action}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.message); }
-      const plRes = await fetch('http://localhost:5000/industry/plants', { headers: { 'Authorization': `Bearer ${token}` } });
+      const plRes = await fetch('/_/backend/industry/plants', { headers: { 'Authorization': `Bearer ${token}` } });
       const plData = await plRes.json();
       if (plRes.ok) setPlantsList(plData);
     } catch (err: any) {
@@ -1267,7 +1267,7 @@ export const Dashboard: React.FC = () => {
     setEditChuteLoading(true);
     setEditChuteError(null);
     try {
-      const res = await fetch(`http://localhost:5000/industry/chutes/${editingChute._id}`, {
+      const res = await fetch(`/_/backend/industry/chutes/${editingChute._id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(editChuteFields),
@@ -1275,7 +1275,7 @@ export const Dashboard: React.FC = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Update failed');
       setEditChuteModalOpen(false);
-      const chutesRes = await fetch('http://localhost:5000/industry/chutes', { headers: { 'Authorization': `Bearer ${token}` } });
+      const chutesRes = await fetch('/_/backend/industry/chutes', { headers: { 'Authorization': `Bearer ${token}` } });
       const chutesData = await chutesRes.json();
       if (chutesRes.ok) {
         const mapped = chutesData.map((c: any) => {
@@ -1296,12 +1296,12 @@ export const Dashboard: React.FC = () => {
     const action = chute.isActive ? 'disable' : 'enable';
     if (!confirm(`Are you sure you want to ${action} chute "${chute.name}"?`)) return;
     try {
-      const res = await fetch(`http://localhost:5000/industry/chutes/${chute._id}/${action}`, {
+      const res = await fetch(`/_/backend/industry/chutes/${chute._id}/${action}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.message); }
-      const chutesRes = await fetch('http://localhost:5000/industry/chutes', { headers: { 'Authorization': `Bearer ${token}` } });
+      const chutesRes = await fetch('/_/backend/industry/chutes', { headers: { 'Authorization': `Bearer ${token}` } });
       const chutesData = await chutesRes.json();
       if (chutesRes.ok) {
         const mapped = chutesData.map((c: any) => {
@@ -1319,7 +1319,7 @@ export const Dashboard: React.FC = () => {
   const handleMigrateNgIds = async () => {
     if (!confirm('This will generate NG IDs for all legacy users who do not have one. Proceed?')) return;
     try {
-      const res = await fetch('http://localhost:5000/auth/migrate-ng-ids', {
+      const res = await fetch('/_/backend/auth/migrate-ng-ids', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
       });

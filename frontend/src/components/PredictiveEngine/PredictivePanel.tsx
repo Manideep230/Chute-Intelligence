@@ -45,7 +45,7 @@ export default function PredictivePanel({ activeChuteId }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`http://localhost:5000/ai/predictions/${activeChuteId}`, {
+      const res = await fetch(`/_/backend/ai/predictions/${activeChuteId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to fetch AI predictions');

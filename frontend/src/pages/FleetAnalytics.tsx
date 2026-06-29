@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { Alert, CircularProgress } from '@mui/material';
 
-const API = 'http://localhost:5000';
+const API = '/_/backend';
 
 interface ChuteKPI {
   chuteId: string;

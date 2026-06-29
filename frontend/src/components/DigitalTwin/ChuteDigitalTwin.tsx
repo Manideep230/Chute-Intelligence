@@ -2321,7 +2321,7 @@ export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: 
     if (!activeChuteId) return;
     setSimulationModeState(mode);
     try {
-      const res = await fetch(`http://localhost:5000/industry/chutes/${activeChuteId}/simulation-mode`, {
+      const res = await fetch(`/_/backend/industry/chutes/${activeChuteId}/simulation-mode`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

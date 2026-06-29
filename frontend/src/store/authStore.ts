@@ -52,7 +52,7 @@ export const useAuthStore = create<AuthState>((set) => {
       localStorage.removeItem('ng_token');
       set({ user: null, token: null, isAuthenticated: false, isInitializing: false });
       try {
-        await fetch('http://localhost:5000/auth/logout', {
+        await fetch('/_/backend/auth/logout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
         });

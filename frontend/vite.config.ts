@@ -12,6 +12,15 @@ export default defineConfig({
       '@asamuzakjp/css-color': path.resolve(__dirname, 'src/mock-css-color.js'),
     },
   },
+  server: {
+    proxy: {
+      '/_/backend': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/_\/backend/, ''),
+      }
+    }
+  },
   test: {
     globals: true,
     environment: 'jsdom',

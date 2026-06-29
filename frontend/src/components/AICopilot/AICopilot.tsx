@@ -100,7 +100,7 @@ export default function AICopilot({ activeChuteId }: Props) {
         content: m.content,
       }));
 
-      const res = await fetch('http://localhost:5000/ai/chat', {
+      const res = await fetch('/_/backend/ai/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

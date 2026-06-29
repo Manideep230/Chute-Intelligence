@@ -20,7 +20,7 @@ function App() {
       }
 
       try {
-        const res = await fetch('http://localhost:5000/auth/refresh', {
+        const res = await fetch('/_/backend/auth/refresh', {
           method: 'POST',
         });
         if (res.ok) {

@@ -20,17 +20,11 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     credentials: init?.credentials || 'include', // Ensure httpOnly cookies are sent
   };
 
-  const requestUrl = typeof input === 'string' 
+  const finalUrl = typeof input === 'string' 
     ? input 
     : (input instanceof URL ? input.toString() : (input as Request).url);
-  
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  const apiBase = isLocal ? 'http://localhost:5000' : '/_/backend';
-  const finalUrl = requestUrl.startsWith('http://localhost:5000')
-    ? requestUrl.replace('http://localhost:5000', apiBase)
-    : requestUrl;
 
-  console.log(`[Fetch-Interceptor] input=${requestUrl} -> finalUrl=${finalUrl}`);
+  console.log(`[Fetch-Interceptor] finalUrl=${finalUrl}`);
 
   const isAuthRoute =
     finalUrl.includes('/auth/request-otp') ||
@@ -43,6 +37,7 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   // If 401 Unauthorized and not an auth route, attempt token refresh
   if (response.status === 401 && !isAuthRoute) {
     try {
+      const apiBase = finalUrl.includes('/_/backend') ? '/_/backend' : '';
       const refreshRes = await originalFetch(`${apiBase}/auth/refresh`, {
         method: 'POST',
         credentials: 'include',

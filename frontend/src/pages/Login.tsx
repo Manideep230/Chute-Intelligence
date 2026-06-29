@@ -20,7 +20,7 @@ export const Login: React.FC = () => {
     setInfo(null);
 
     try {
-      const res = await fetch('http://localhost:5000/auth/request-otp', {
+      const res = await fetch('/_/backend/auth/request-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone }),
@@ -47,7 +47,7 @@ export const Login: React.FC = () => {
     setError(null);
 
     try {
-      const res = await fetch('http://localhost:5000/auth/verify-otp', {
+      const res = await fetch('/_/backend/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, otp }),
