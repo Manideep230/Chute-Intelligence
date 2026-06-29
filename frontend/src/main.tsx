@@ -29,6 +29,8 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     ? requestUrl.replace('http://localhost:5000', apiBase)
     : requestUrl;
 
+  console.log(`[Fetch-Interceptor] input=${requestUrl} -> finalUrl=${finalUrl}`);
+
   const isAuthRoute =
     finalUrl.includes('/auth/request-otp') ||
     finalUrl.includes('/auth/verify-otp') ||
