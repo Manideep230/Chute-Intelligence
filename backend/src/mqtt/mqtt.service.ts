@@ -145,9 +145,15 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async connectToBroker() {
-    if (process.env.VERCEL || process.env.DISABLE_PERSISTENT_MQTT === 'true') {
+    const isServerless =
+      process.env.VERCEL ||
+      process.env.LAMBDA_TASK_ROOT ||
+      process.env.NODE_ENV === 'production' ||
+      process.env.DISABLE_PERSISTENT_MQTT === 'true';
+
+    if (isServerless) {
       this.logger.log(
-        'Running in serverless/Vercel context. Skipping persistent background MQTT connection.',
+        'Running in serverless/Vercel/production context. Skipping persistent background MQTT connection.',
       );
       return;
     }
