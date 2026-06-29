@@ -24,7 +24,8 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     ? input 
     : (input instanceof URL ? input.toString() : (input as Request).url);
   
-  const apiBase = import.meta.env.DEV ? 'http://localhost:5000' : '/_/backend';
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const apiBase = isLocal ? 'http://localhost:5000' : '/_/backend';
   const finalUrl = requestUrl.startsWith('http://localhost:5000')
     ? requestUrl.replace('http://localhost:5000', apiBase)
     : requestUrl;
