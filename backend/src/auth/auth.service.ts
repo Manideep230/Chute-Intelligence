@@ -171,8 +171,10 @@ export class AuthService {
     const url = `https://43.252.88.250/index.php/smsapi/httpapi/?secret=${secret}&sender=${sender}&tempid=${tempid}&receiver=${cleanPhone}&route=${route}&msgtype=${msgtype}&sms=${encodeURIComponent(sms)}`;
 
     return new Promise((resolve) => {
-      https
-        .get(url, { rejectUnauthorized: false }, (res) => {
+      const req = https.get(
+        url,
+        { rejectUnauthorized: false, timeout: 5000 },
+        (res) => {
           let data = '';
           res.on('data', (chunk) => {
             data += chunk;
@@ -183,11 +185,19 @@ export class AuthService {
             );
             resolve(true);
           });
-        })
-        .on('error', (err) => {
-          console.error('[SMS-API-ERROR]', err);
-          resolve(false);
-        });
+        },
+      );
+
+      req.on('timeout', () => {
+        console.warn('[SMS-API-TIMEOUT] SMS gateway request timed out after 5000ms');
+        req.destroy();
+        resolve(false);
+      });
+
+      req.on('error', (err) => {
+        console.error('[SMS-API-ERROR]', err);
+        resolve(false);
+      });
     });
   }
 
