@@ -31,6 +31,10 @@ export class AlertEscalationService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
+    if (process.env.VERCEL || process.env.DISABLE_ALERT_ESCALATION === 'true') {
+      this.logger.log('Running in serverless/Vercel context. Skipping background Alert Escalation engine.');
+      return;
+    }
     this.logger.log('Initializing Alert Escalation engine...');
     // Run the scan every 30 seconds
     this.checkInterval = setInterval(() => this.scanAndEscalateAlerts(), 30000);
