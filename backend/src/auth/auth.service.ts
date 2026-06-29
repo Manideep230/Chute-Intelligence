@@ -161,11 +161,11 @@ export class AuthService {
       return false;
     }
 
-    const secret = 'xledocqmXkNPrTesuqWr';
-    const sender = 'NIGHAI';
-    const tempid = '1207174264191607433';
-    const route = 'TA';
-    const msgtype = '1';
+    const secret = process.env.SMS_API_SECRET || 'xledocqmXkNPrTesuqWr';
+    const sender = process.env.SMS_API_SENDER || 'NIGHAI';
+    const tempid = process.env.SMS_API_TEMPLATE_ID || '1207174264191607433';
+    const route = process.env.SMS_API_ROUTE || 'TA';
+    const msgtype = process.env.SMS_API_MSG_TYPE || '1';
     const sms = `Welcome to Chute Intelligence\nYour OTP for Authentication is ${otp}\nDon't share with anybody\nThank You, Team NighaTech Global Pvt. Ltd.`;
 
     const url = `https://43.252.88.250/index.php/smsapi/httpapi/?secret=${secret}&sender=${sender}&tempid=${tempid}&receiver=${cleanPhone}&route=${route}&msgtype=${msgtype}&sms=${encodeURIComponent(sms)}`;
