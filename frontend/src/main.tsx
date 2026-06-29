@@ -24,7 +24,7 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     ? input 
     : (input instanceof URL ? input.toString() : (input as Request).url);
   
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const apiBase = import.meta.env.DEV ? 'http://localhost:5000' : '/_/backend';
   const finalUrl = requestUrl.startsWith('http://localhost:5000')
     ? requestUrl.replace('http://localhost:5000', apiBase)
     : requestUrl;
