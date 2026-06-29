@@ -1,0 +1,13 @@
+{
+  "name": "nigha-chute-simulator",
+  "version": "1.0.0",
+  "description": "Nigha Radar Hardware Simulator",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "mqtt": "^5.10.1"
+  }
+}

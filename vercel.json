@@ -1,0 +1,11 @@
+{
+  "rewrites": [
+    { "source": "/auth/(.*)", "destination": "/api" },
+    { "source": "/industry/(.*)", "destination": "/api" },
+    { "source": "/reports/(.*)", "destination": "/api" },
+    { "source": "/ai/(.*)", "destination": "/api" },
+    { "source": "/admin/(.*)", "destination": "/api" },
+    { "source": "/mqtt-webhook", "destination": "/api" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
