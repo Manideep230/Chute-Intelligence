@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getThemeColors } from '../constants';
+import { QrChuteRegisterModal } from './modals/QrChuteRegisterModal';
 
 interface RegistryTabProps {
   plantsList: any[];
@@ -71,6 +72,7 @@ export const RegistryTab: React.FC<RegistryTabProps> = ({
   const [editChuteFields, setEditChuteFields] = useState<any>({});
   const [editChuteLoading, setEditChuteLoading] = useState(false);
   const [editChuteError, setEditChuteError] = useState<string | null>(null);
+  const [qrRegisterModalOpen, setQrRegisterModalOpen] = useState(false);
 
   const colors = getThemeColors(theme);
   const GREEN = colors.GREEN;
@@ -129,6 +131,22 @@ export const RegistryTab: React.FC<RegistryTabProps> = ({
     }
   };
 
+  const reloadChutesList = async () => {
+    try {
+      const chutesRes = await fetch('/_/backend/industry/chutes', { headers: { 'Authorization': `Bearer ${token}` } });
+      const chutesData = await chutesRes.json();
+      if (chutesRes.ok) {
+        const mapped = chutesData.map((c: any) => {
+          const p = plantsList.find((pl: any) => pl._id === c.plantId || pl._id === c.plantId?.toString());
+          return { ...c, plantName: p ? p.name : 'Unknown Facility' };
+        });
+        setChutes(mapped);
+      }
+    } catch (err) {
+      console.error('Failed to reload chutes list:', err);
+    }
+  };
+
   const handleRegisterChute = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegSuccess(null);
@@ -147,16 +165,7 @@ export const RegistryTab: React.FC<RegistryTabProps> = ({
       if (!res.ok) throw new Error(data.message || 'Registration failed');
       setRegSuccess(`Chute registered! Code: ${data.chuteCode}`);
       setRegName('');
-      
-      const chutesRes = await fetch('/_/backend/industry/chutes', { headers: { 'Authorization': `Bearer ${token}` } });
-      const chutesData = await chutesRes.json();
-      if (chutesRes.ok) {
-        const mapped = chutesData.map((c: any) => {
-          const p = plantsList.find((pl: any) => pl._id === c.plantId || pl._id === c.plantId?.toString());
-          return { ...c, plantName: p ? p.name : 'Unknown Facility' };
-        });
-        setChutes(mapped);
-      }
+      await reloadChutesList();
     } catch (err: any) {
       setRegError(err.message);
     }
@@ -491,7 +500,20 @@ export const RegistryTab: React.FC<RegistryTabProps> = ({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: '20px' }}>
               {/* Register Chute Form */}
               <div className="glass-panel" style={{ padding: '20px', borderRadius: '12px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-primary)' }}>Register New Chute</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>Register New Chute</div>
+                  <button
+                    type="button"
+                    onClick={() => setQrRegisterModalOpen(true)}
+                    style={{
+                      padding: '4px 8px', fontSize: '10px', fontWeight: 700,
+                      borderRadius: '4px', border: `1px solid ${BLUE}40`,
+                      background: `${BLUE}15`, color: BLUE, cursor: 'pointer'
+                    }}
+                  >
+                    📷 Register via QR
+                  </button>
+                </div>
                 <form onSubmit={handleRegisterChute} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div>
                     <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '4px', fontWeight: 600 }}>Chute Name *</div>
@@ -724,6 +746,15 @@ export const RegistryTab: React.FC<RegistryTabProps> = ({
           </div>
         </div>
       )}
+
+      <QrChuteRegisterModal
+        open={qrRegisterModalOpen}
+        onClose={() => setQrRegisterModalOpen(false)}
+        plantsList={plantsList}
+        token={token}
+        theme={theme}
+        onChuteRegistered={reloadChutesList}
+      />
     </div>
   );
 };
