@@ -2679,7 +2679,18 @@ export const Dashboard: React.FC = () => {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {maintenanceTickets.length === 0 && (
-                    <div style={{ color: 'var(--text-muted)', fontSize: '13px', padding: '16px 0', textAlign: 'center' }}>No active tickets.</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="glass-panel" style={{ padding: '14px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div className="skeleton-shimmer" style={{ width: '3px', height: '40px', borderRadius: '2px', flexShrink: 0 }} />
+                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <div className="skeleton-shimmer" style={{ height: '12px', width: '100px', borderRadius: '4px' }} />
+                            <div className="skeleton-shimmer" style={{ height: '11px', width: '260px', borderRadius: '4px' }} />
+                          </div>
+                          <div className="skeleton-shimmer" style={{ height: '20px', width: '70px', borderRadius: '6px', flexShrink: 0 }} />
+                        </div>
+                      ))}
+                    </div>
                   )}
                   {maintenanceTickets.map((ticket: any) => (
                     <div key={ticket._id} className="glass-panel" style={{ padding: '14px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -2726,15 +2737,28 @@ export const Dashboard: React.FC = () => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {auditLogs.map((log: any) => (
-                        <TableRow key={log._id}>
-                          <TableCell style={{ color: 'var(--text-muted)', fontSize: '11px', fontFamily: 'var(--font-mono)', borderBottom: `1px solid var(--border-light)` }}>
-                            {new Date(log.createdAt).toLocaleString()}
-                          </TableCell>
-                          <TableCell style={{ color: BLUE, fontSize: '12px', fontWeight: 700, borderBottom: `1px solid var(--border-light)` }}>{log.action}</TableCell>
-                          <TableCell style={{ color: 'var(--text-secondary)', fontSize: '11px', borderBottom: `1px solid var(--border-light)` }}>{log.details}</TableCell>
-                        </TableRow>
-                      ))}
+                      {auditLogs.length === 0 ? (
+                        // Skeleton rows shown while audit logs are loading
+                        Array.from({ length: 6 }).map((_, i) => (
+                          <TableRow key={`skel-${i}`}>
+                            {[120, 160, 280].map((w, j) => (
+                              <TableCell key={j} style={{ borderBottom: `1px solid var(--border-light)`, padding: '12px' }}>
+                                <div className="skeleton-shimmer" style={{ height: '12px', width: `${w}px`, borderRadius: '4px' }} />
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))
+                      ) : (
+                        auditLogs.map((log: any) => (
+                          <TableRow key={log._id}>
+                            <TableCell style={{ color: 'var(--text-muted)', fontSize: '11px', fontFamily: 'var(--font-mono)', borderBottom: `1px solid var(--border-light)` }}>
+                              {new Date(log.createdAt).toLocaleString()}
+                            </TableCell>
+                            <TableCell style={{ color: BLUE, fontSize: '12px', fontWeight: 700, borderBottom: `1px solid var(--border-light)` }}>{log.action}</TableCell>
+                            <TableCell style={{ color: 'var(--text-secondary)', fontSize: '11px', borderBottom: `1px solid var(--border-light)` }}>{log.details}</TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -2803,7 +2827,17 @@ export const Dashboard: React.FC = () => {
                   <div className="glass-panel" style={{ padding: '20px', borderRadius: '12px' }}>
                     <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '16px', color: 'var(--text-primary)' }}>Active Credentials Registry ({allUsers.length})</div>
                     {userLoading ? (
-                      <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Retrieving credentials...</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {Array.from({ length: 4 }).map((_, i) => (
+                          <div key={i} className="glass-card" style={{ padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              <div className="skeleton-shimmer" style={{ height: '13px', width: '140px', borderRadius: '4px' }} />
+                              <div className="skeleton-shimmer" style={{ height: '10px', width: '200px', borderRadius: '4px' }} />
+                            </div>
+                            <div className="skeleton-shimmer" style={{ height: '18px', width: '60px', borderRadius: '12px' }} />
+                          </div>
+                        ))}
+                      </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '500px', overflowY: 'auto' }}>
                         {allUsers.map((u: any) => (
