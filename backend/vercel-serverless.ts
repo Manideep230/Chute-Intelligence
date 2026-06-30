@@ -48,10 +48,12 @@ export default async (req: any, res: any) => {
     return serverInstance(req, res);
   } catch (err: any) {
     console.error(`[HANDLER_CRASH] [${new Date().toISOString()}] NestJS handler crash:`, err);
-    res.status(500).json({
+    res.statusCode = 500;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({
       error: 'NestJS Bootstrap Error',
       message: err.message,
       stack: err.stack,
-    });
+    }));
   }
 };
