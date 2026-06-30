@@ -9,11 +9,5 @@
       "entrypoint": "backend/dist/vercel-serverless.js",
       "routePrefix": "/_/backend"
     }
-  },
-  "functions": {
-    "backend/dist/vercel-serverless.js": {
-      "maxDuration": 60,
-      "memory": 1024
-    }
   }
 }
