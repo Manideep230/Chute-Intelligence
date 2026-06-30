@@ -6,7 +6,7 @@
       "framework": "vite"
     },
     "backend": {
-      "entrypoint": "backend/dist/vercel-serverless.js",
+      "entrypoint": "backend/vercel-serverless.ts",
       "routePrefix": "/_/backend"
     }
   }
