@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import mqtt from 'mqtt';
 import { useAuthStore } from '../store/authStore';
 import { useTelemetryStore } from '../store/telemetryStore';
@@ -1349,8 +1349,8 @@ export const Dashboard: React.FC = () => {
     setTimeout(() => setIsThemeTransitioning(false), 400);
   };
 
-  // Navigation Items
-  const navItems = [
+  // Navigation Items — memoized because it creates JSX icon elements on each render
+  const navItems = useMemo(() => [
     { id: 'dashboard', label: 'Operations', icon: <Activity size={16} /> },
     ...(roleAccess.isManager ? [{ id: 'maintenance', label: 'Maintenance', icon: <Wrench size={16} /> }] : []),
     ...(roleAccess.canManageIncidents ? [{ id: 'incidents', label: 'Incidents', icon: <AlertTriangle size={16} /> }] : []),
@@ -1359,7 +1359,7 @@ export const Dashboard: React.FC = () => {
     ...(roleAccess.isAdmin ? [{ id: 'registry', label: 'Fleet Management', icon: <Inbox size={16} /> }] : []),
     ...(roleAccess.canViewFleetAnalytics ? [{ id: 'fleet-analytics', label: 'Fleet Analytics', icon: <BarChart3 size={16} /> }] : []),
     { id: 'profile', label: 'Profile', icon: <Settings size={16} /> },
-  ];
+  ], [roleAccess]);
 
   if (loading) {
     return (
@@ -1372,7 +1372,7 @@ export const Dashboard: React.FC = () => {
     );
   }
 
-  // Derive Health score KPIs
+  // Derive Health score KPIs — intermediate values used in JSX below
   const avgBlasterHealth = blasters.length > 0
     ? blasters.reduce((s, b) => s + b.healthScore, 0) / blasters.length : 100;
   const openAutoTickets = chuteKpis?.openAutoTickets ?? 0;
@@ -1381,12 +1381,13 @@ export const Dashboard: React.FC = () => {
     ? chuteKpis.lastBlastEffectivenessScore : 100;
   const compHealth = compressor?.healthScore ?? 100;
 
-  const chuteHealthScore = Math.round(
+  // Composite health score — memoized to avoid recomputing on unrelated re-renders
+  const chuteHealthScore = useMemo(() => Math.round(
     0.35 * (chuteKpis?.uptimePercent24h ?? 100) +
     0.25 * blastEffScore +
     0.25 * compHealth +
     0.15 * (100 - maintenanceRisk)
-  );
+  ), [chuteKpis, blastEffScore, compHealth, maintenanceRisk]);
 
   const isDark = theme === 'dark';
   const GREEN = isDark ? '#34D399' : '#059669';
@@ -1409,8 +1410,8 @@ export const Dashboard: React.FC = () => {
     Low: GREEN, Medium: AMBER, High: '#FBBF24', Critical: RED
   };
 
-  // Timeline Events helper
-  const timelineEvents = [
+  // Timeline Events — memoized because it creates Date objects, maps, spreads, and sorts
+  const timelineEvents = useMemo(() => [
     ...activeAlerts.map(a => ({
       id: a._id || Math.random().toString(),
       type: 'alert',
@@ -1447,7 +1448,7 @@ export const Dashboard: React.FC = () => {
       date: new Date(Date.now() - 6 * 3600 * 1000),
       color: GREEN
     }
-  ].sort((a, b) => b.date.getTime() - a.date.getTime());
+  ].sort((a, b) => b.date.getTime() - a.date.getTime()), [activeAlerts, maintenanceTickets, alertColor, RED, GREEN, AMBER, BLUE]);
 
   // Radial Gauge renderer
   const renderRadialGauge = (score: number, color: string) => {
