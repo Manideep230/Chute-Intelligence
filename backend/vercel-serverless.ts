@@ -1,14 +1,26 @@
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
-import express = require('express');
 import { AppModule } from './src/app.module';
 
-const server = express();
+// Use require statement inside function context to bypass top-level ESM conflicts
+const getExpressApp = () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const express = require('express');
+  return express();
+};
+
+const server = getExpressApp();
 
 const bootstrap = async () => {
+  console.log(`[BOOTSTRAP_START] [${new Date().toISOString()}] Starting NestJS Bootstrap...`);
+  const startTime = Date.now();
+  
   const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
+  console.log(`[NEST_FACTORY_CREATE_COMPLETED] [${new Date().toISOString()}] NestFactory created app in ${Date.now() - startTime}ms.`);
+  
   app.enableCors();
   await app.init();
+  console.log(`[BOOTSTRAP_SUCCESS] [${new Date().toISOString()}] NestJS successfully initialized in ${Date.now() - startTime}ms.`);
   return server;
 };
 
@@ -24,16 +36,18 @@ const getAppServer = async () => {
     return appServer;
   } catch (err) {
     bootstrapError = err;
+    console.error(`[BOOTSTRAP_FAILED] [${new Date().toISOString()}] NestJS Bootstrap failed:`, err);
     throw err;
   }
 };
 
 export default async (req: any, res: any) => {
+  console.log(`[REQUEST_RECEIVED] [${new Date().toISOString()}] Invoking request-handler: Path=${req.url}`);
   try {
     const serverInstance = await getAppServer();
     return serverInstance(req, res);
   } catch (err: any) {
-    console.error('NestJS Bootstrap Error:', err);
+    console.error(`[HANDLER_CRASH] [${new Date().toISOString()}] NestJS handler crash:`, err);
     res.status(500).json({
       error: 'NestJS Bootstrap Error',
       message: err.message,
