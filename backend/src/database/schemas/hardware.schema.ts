@@ -58,6 +58,7 @@ export class Radar {
 }
 
 export const RadarSchema = SchemaFactory.createForClass(Radar);
+RadarSchema.index({ chuteId: 1, zone: 1 });
 
 @Schema({ timestamps: true })
 export class AirBlaster {
@@ -81,6 +82,7 @@ export class AirBlaster {
 }
 
 export const AirBlasterSchema = SchemaFactory.createForClass(AirBlaster);
+AirBlasterSchema.index({ chuteId: 1, blasterNumber: 1 });
 
 @Schema({ timestamps: true })
 export class Solenoid {
@@ -104,6 +106,7 @@ export class Solenoid {
 }
 
 export const SolenoidSchema = SchemaFactory.createForClass(Solenoid);
+SolenoidSchema.index({ chuteId: 1, valveNumber: 1 });
 
 @Schema({ timestamps: true })
 export class Compressor {
@@ -154,3 +157,4 @@ export class Compressor {
 }
 
 export const CompressorSchema = SchemaFactory.createForClass(Compressor);
+CompressorSchema.index({ chuteId: 1 });

@@ -120,6 +120,7 @@ export class HubHealth {
 }
 
 export const HubHealthSchema = SchemaFactory.createForClass(HubHealth);
+HubHealthSchema.index({ chuteId: 1 });
 
 @Schema({ timestamps: true })
 export class AiPrediction {
@@ -194,3 +195,4 @@ export class AiPrediction {
 }
 
 export const AiPredictionSchema = SchemaFactory.createForClass(AiPrediction);
+AiPredictionSchema.index({ chuteId: 1 });
