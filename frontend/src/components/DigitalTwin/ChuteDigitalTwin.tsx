@@ -2228,6 +2228,9 @@ export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: 
   const [viewMode, setViewMode] = useState<'operator' | 'transparent' | 'cutaway' | 'maintenance'>('operator');
   const [canvasKey, setCanvasKey] = useState(0);
   const controlsRef = useRef<any>(null);
+  const [isContextLost, setIsContextLost] = useState(false);
+  const contextLossCountRef = useRef(0);
+  const lastContextLossTimeRef = useRef(0);
 
   // Debug mode and camera preset states for engineering validation
   const [debugMode, setDebugMode] = useState(false);
@@ -2869,155 +2872,224 @@ export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: 
       </div>
 
       {/* ─── THREE.JS CANVAS ──────────────────────────────────────────────── */}
-      <Canvas
-        key={canvasKey}
-        camera={{ position: [3.8, 2.2, 6.5], fov: 40 }}
-        gl={{ antialias: true, alpha: true }}
-        style={{ background: twinBg }}
-        onCreated={({ gl }) => {
-          const canvas = gl.domElement;
-          const handleContextLost = (e: Event) => {
-            e.preventDefault();
-            console.warn('WebGL context lost on ChuteDigitalTwin — remounting');
-            setCanvasKey(k => k + 1);
-          };
-          canvas.addEventListener('webglcontextlost', handleContextLost, false);
-        }}
-      >
+      {/* ─── THREE.JS CANVAS ──────────────────────────────────────────────── */}
+      {isContextLost ? (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(10, 15, 26, 0.94)',
+          backdropFilter: 'blur(16px)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+          color: 'var(--text-primary)',
+          fontFamily: "'Inter', sans-serif",
+          zIndex: 100,
+          textAlign: 'center',
+          gap: '16px',
+        }}>
+          <div style={{ fontSize: '48px', animation: 'pulseGlow 2s infinite' }}>🛰️</div>
+          <div>
+            <h3 style={{ fontSize: '15px', fontWeight: 800, margin: '0 0 8px 0', color: '#f43f5e', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+              3D Viewport Paused
+            </h3>
+            <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', maxWidth: '320px', margin: '0 auto', lineHeight: 1.5 }}>
+              WebGL context was repeatedly lost by your browser. This can happen if system memory is low, backgrounding, or the display driver reset.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              contextLossCountRef.current = 0;
+              setIsContextLost(false);
+              setCanvasKey(k => k + 1);
+            }}
+            style={{
+              padding: '10px 20px',
+              background: 'linear-gradient(135deg, #00d4ff 0%, #0284c7 100%)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(0, 212, 255, 0.3)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            Reinitialize 3D Viewport
+          </button>
+        </div>
+      ) : (
+        <Canvas
+          key={canvasKey}
+          camera={{ position: [3.8, 2.2, 6.5], fov: 40 }}
+          gl={{ antialias: true, alpha: true }}
+          style={{ background: twinBg }}
+          onCreated={({ gl }) => {
+            const canvas = gl.domElement;
+            const handleContextLost = (e: Event) => {
+              e.preventDefault();
+              console.warn('WebGL context lost on ChuteDigitalTwin — remounting');
+              
+              const now = Date.now();
+              const timeDiff = now - lastContextLossTimeRef.current;
+              lastContextLossTimeRef.current = now;
 
-        {/* Phase 6: Richer industrial lighting */}
-        <ambientLight intensity={isDark ? 0.55 : 0.75} color={isDark ? '#c8d4e8' : '#ffffff'} />
-        <directionalLight position={[8, 12, 6]}  intensity={isDark ? 1.6 : 1.4} color="#f0f4ff" castShadow />
-        <directionalLight position={[-8, 6, -4]} intensity={0.4} color="#a0b8d0" />
-        <directionalLight position={[0, -4, -6]} intensity={0.35} color="#3060a0" />
-        <pointLight position={[0, 5, 0]}   intensity={0.7}  color="#d0deff" distance={14} />
-        <pointLight position={[0, -3, 3]}  intensity={0.25} color="#405870" distance={8} />
-        {/* Phase 6: soft fill light from front for industrial feel */}
-        <pointLight position={[0, 2, 7]}   intensity={0.3}  color="#E8F0FF" distance={12} />
-        <hemisphereLight args={['#b0c4de', '#3a3a2a', 0.4]} />
+              if (timeDiff < 5000) {
+                contextLossCountRef.current += 1;
+              } else {
+                contextLossCountRef.current = 1;
+              }
 
-        <IndustrialGround viewMode={viewMode} isDark={isDark} />
-        {viewMode !== 'maintenance' && viewMode !== 'operator' && <ScanningParticles isDark={isDark} />}
+              if (contextLossCountRef.current > 3) {
+                console.error('Too many consecutive WebGL context losses — pausing 3D Digital Twin');
+                setIsContextLost(true);
+              } else {
+                setTimeout(() => {
+                  setCanvasKey(k => k + 1);
+                }, 500);
+              }
+            };
+            canvas.addEventListener('webglcontextlost', handleContextLost, false);
+          }}
+        >
 
-        {/* Phase 9: Camera manager with presets + focus target */}
-        <CameraManager viewMode={viewMode} controlsRef={controlsRef} focusTarget={cameraFocus} cameraPreset={cameraPreset} />
+          {/* Phase 6: Richer industrial lighting */}
+          <ambientLight intensity={isDark ? 0.55 : 0.75} color={isDark ? '#c8d4e8' : '#ffffff'} />
+          <directionalLight position={[8, 12, 6]}  intensity={isDark ? 1.6 : 1.4} color="#f0f4ff" castShadow />
+          <directionalLight position={[-8, 6, -4]} intensity={0.4} color="#a0b8d0" />
+          <directionalLight position={[0, -4, -6]} intensity={0.35} color="#3060a0" />
+          <pointLight position={[0, 5, 0]}   intensity={0.7}  color="#d0deff" distance={14} />
+          <pointLight position={[0, -3, 3]}  intensity={0.25} color="#405870" distance={8} />
+          {/* Phase 6: soft fill light from front for industrial feel */}
+          <pointLight position={[0, 2, 7]}   intensity={0.3}  color="#E8F0FF" distance={12} />
+          <hemisphereLight args={['#b0c4de', '#3a3a2a', 0.4]} />
 
-        <group rotation={[0, (rotationX * Math.PI) / 180, 0]}>
-          <WiringDiagram viewMode={viewMode} />
+          <IndustrialGround viewMode={viewMode} isDark={isDark} />
+          {viewMode !== 'maintenance' && viewMode !== 'operator' && <ScanningParticles isDark={isDark} />}
 
-          {/* Air supply pipes */}
-          <mesh position={[-1.2, 0, -0.4]} rotation={[0, 0, 0.12]}>
-            <cylinderGeometry args={[0.03, 0.03, 4.0, 8]} />
-            <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} wireframe={viewMode === 'maintenance'} />
-          </mesh>
-          <mesh position={[1.2, 0, -0.4]} rotation={[0, 0, -0.12]}>
-            <cylinderGeometry args={[0.03, 0.03, 4.0, 8]} />
-            <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} wireframe={viewMode === 'maintenance'} />
-          </mesh>
-          <mesh position={[0, -2.5, -0.4]} rotation={[0, 0, Math.PI/2]}>
-            <cylinderGeometry args={[0.03, 0.03, 2.4, 8]} />
-            <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} wireframe={viewMode === 'maintenance'} />
-          </mesh>
+          {/* Phase 9: Camera manager with presets + focus target */}
+          <CameraManager viewMode={viewMode} controlsRef={controlsRef} focusTarget={cameraFocus} cameraPreset={cameraPreset} />
 
-          <group position={[0, 0.5, 0]}>
-            {/* Chute structure (Phase 6 upgraded) with Z-aligned air blasters mounted perpendicular to slants */}
-            <ChuteStructure
-              status={chuteStatus}
-              viewMode={viewMode}
-              isDark={isDark}
-              activePath={currentActivePath}
-              activeBlasterNumber={activeBlasterNumber}
-              blast={blast}
-              blasters={blasters}
-              solenoidSelection={solenoidSelection}
-              handleSolenoidSelect={handleSolenoidSelect}
-              debugMode={debugMode}
-              getBlastLifecycle={getBlastLifecycle}
-            />
+          <group rotation={[0, (rotationX * Math.PI) / 180, 0]}>
+            <WiringDiagram viewMode={viewMode} />
 
-            {/* Phase 8: Realistic material flow */}
-            <RealisticMaterialFlow
-              status={chuteStatus}
-              devBlockages={devBlockages}
-              activeBlasterNumber={activeBlasterNumber}
-              activePath={currentActivePath}
-              blastActive={blast.active}
-              flowActive={flowActive}
-              viewMode={viewMode}
-            />
+            {/* Air supply pipes */}
+            <mesh position={[-1.2, 0, -0.4]} rotation={[0, 0, 0.12]}>
+              <cylinderGeometry args={[0.03, 0.03, 4.0, 8]} />
+              <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} wireframe={viewMode === 'maintenance'} />
+            </mesh>
+            <mesh position={[1.2, 0, -0.4]} rotation={[0, 0, -0.12]}>
+              <cylinderGeometry args={[0.03, 0.03, 4.0, 8]} />
+              <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} wireframe={viewMode === 'maintenance'} />
+            </mesh>
+            <mesh position={[0, -2.5, -0.4]} rotation={[0, 0, Math.PI/2]}>
+              <cylinderGeometry args={[0.03, 0.03, 2.4, 8]} />
+              <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} wireframe={viewMode === 'maintenance'} />
+            </mesh>
 
-            {/* Phase 1: Invisible click plane for blockage placement */}
-            <SlantClickPlane
-              activePath={currentActivePath}
-              enabled={devBlocking.pendingPlacement}
-              onPlace={handleBlockagePlacement}
-            />
-
-            {/* Phase 1/3: Organic dev blockages */}
-            {devBlockages.map(blk => (
-              <OrganicBlockage
-                key={blk.id}
-                blockage={blk}
-                viewMode={viewMode}
-                isSelected={selectedBlockageId === blk.id}
-                onSelect={() => setSelectedBlockageId(sel => sel === blk.id ? null : blk.id)}
-              />
-            ))}
-
-            {/* Legacy MQTT-driven blockages */}
-            {(() => {
-              const isZoneActive = (zoneIndex: number, path: 'LEFT_SLANT' | 'RIGHT_SLANT') =>
-                path === 'LEFT_SLANT' ? (zoneIndex === 1 || zoneIndex === 2) : (zoneIndex === 0 || zoneIndex === 3);
-              return radars.map((r, i) => (
-                <BlockageMass key={i} zone={i} active={r.buildupDetected && isZoneActive(i, currentActivePath)} viewMode={viewMode} />
-              ));
-            })()}
-
-            {/* Air blasters and blast animations are rendered dynamically inside ChuteStructure crossover groups */}
-
-            {/* Phase 4: Blast radius preview for selected solenoid */}
-            {solenoidSelection.blasterNumber !== null && solenoidSelection.solenoidPosition && !blast.active && (
-              <BlastRadiusPreview
-                position={solenoidSelection.solenoidPosition}
-                radius={solenoidSelection.blastRadius}
-                impactPoint={solenoidSelection.impactPoint}
-              />
-            )}
-
-            {/* Phase 7: Radar sensors */}
-            <RadarSensor position={[-1.75, 1.4, 0.4]} explodedPosition={[-2.4, 1.8, 0.9]} target={[-0.6, 0.9, 0]} mountPoint={[-1.65, 1.4, 0.1]} zone={1} distance={radars[0]?.distance ?? 3.5} detecting={radars[0]?.buildupDetected ?? false} viewMode={viewMode} isDark={isDark} isActivePath={currentActivePath === 'RIGHT_SLANT'} />
-            <RadarSensor position={[1.75, 1.4, 0.4]}  explodedPosition={[2.4, 1.8, 0.9]}  target={[0.6, 0.9, 0]}   mountPoint={[1.65, 1.4, 0.1]}  zone={2} distance={radars[1]?.distance ?? 3.5} detecting={radars[1]?.buildupDetected ?? false} viewMode={viewMode} isDark={isDark} isActivePath={currentActivePath === 'LEFT_SLANT'} />
-            <RadarSensor position={[-1.65, -0.6, 0.4]} explodedPosition={[-2.3, -1.0, 0.9]} target={[-1.2, -1.6, 0]} mountPoint={[-1.41, -0.6, 0.1]} zone={3} distance={radars[2]?.distance ?? 3.5} detecting={radars[2]?.buildupDetected ?? false} viewMode={viewMode} isDark={isDark} isActivePath={currentActivePath === 'LEFT_SLANT'} />
-            <RadarSensor position={[1.65, -0.6, 0.4]}  explodedPosition={[2.3, -1.0, 0.9]}  target={[1.2, -1.6, 0]}   mountPoint={[1.41, -0.6, 0.1]}  zone={4} distance={radars[3]?.distance ?? 3.5} detecting={radars[3]?.buildupDetected ?? false} viewMode={viewMode} isDark={isDark} isActivePath={currentActivePath === 'RIGHT_SLANT'} />
-
-            {/* Active Path Indicator */}
-            {viewMode !== 'maintenance' && (
-              <ActivePathIndicator
-                activePath={currentActivePath}
-                blockagePosition={blockagePosition}
-                blockageDistance={blockageDistance}
-                nearestSolenoidGroup={nearestSolenoidGroup}
+            <group position={[0, 0.5, 0]}>
+              {/* Chute structure (Phase 6 upgraded) with Z-aligned air blasters mounted perpendicular to slants */}
+              <ChuteStructure
                 status={chuteStatus}
-                simulationMode={simulationMode}
+                viewMode={viewMode}
                 isDark={isDark}
+                activePath={currentActivePath}
+                activeBlasterNumber={activeBlasterNumber}
+                blast={blast}
+                blasters={blasters}
+                solenoidSelection={solenoidSelection}
+                handleSolenoidSelect={handleSolenoidSelect}
+                debugMode={debugMode}
+                getBlastLifecycle={getBlastLifecycle}
               />
-            )}
+
+              {/* Phase 8: Realistic material flow */}
+              <RealisticMaterialFlow
+                status={chuteStatus}
+                devBlockages={devBlockages}
+                activeBlasterNumber={activeBlasterNumber}
+                activePath={currentActivePath}
+                blastActive={blast.active}
+                flowActive={flowActive}
+                viewMode={viewMode}
+              />
+
+              {/* Phase 1: Invisible click plane for blockage placement */}
+              <SlantClickPlane
+                activePath={currentActivePath}
+                enabled={devBlocking.pendingPlacement}
+                onPlace={handleBlockagePlacement}
+              />
+
+              {/* Phase 1/3: Organic dev blockages */}
+              {devBlockages.map(blk => (
+                <OrganicBlockage
+                  key={blk.id}
+                  blockage={blk}
+                  viewMode={viewMode}
+                  isSelected={selectedBlockageId === blk.id}
+                  onSelect={() => setSelectedBlockageId(sel => sel === blk.id ? null : blk.id)}
+                />
+              ))}
+
+              {/* Legacy MQTT-driven blockages */}
+              {(() => {
+                const isZoneActive = (zoneIndex: number, path: 'LEFT_SLANT' | 'RIGHT_SLANT') =>
+                  path === 'LEFT_SLANT' ? (zoneIndex === 1 || zoneIndex === 2) : (zoneIndex === 0 || zoneIndex === 3);
+                return radars.map((r, i) => (
+                  <BlockageMass key={i} zone={i} active={r.buildupDetected && isZoneActive(i, currentActivePath)} viewMode={viewMode} />
+                ));
+              })()}
+
+              {/* Air blasters and blast animations are rendered dynamically inside ChuteStructure crossover groups */}
+
+              {/* Phase 4: Blast radius preview for selected solenoid */}
+              {solenoidSelection.blasterNumber !== null && solenoidSelection.solenoidPosition && !blast.active && (
+                <BlastRadiusPreview
+                  position={solenoidSelection.solenoidPosition}
+                  radius={solenoidSelection.blastRadius}
+                  impactPoint={solenoidSelection.impactPoint}
+                />
+              )}
+
+              {/* Phase 7: Radar sensors */}
+              <RadarSensor position={[-1.75, 1.4, 0.4]} explodedPosition={[-2.4, 1.8, 0.9]} target={[-0.6, 0.9, 0]} mountPoint={[-1.65, 1.4, 0.1]} zone={1} distance={radars[0]?.distance ?? 3.5} detecting={radars[0]?.buildupDetected ?? false} viewMode={viewMode} isDark={isDark} isActivePath={currentActivePath === 'RIGHT_SLANT'} />
+              <RadarSensor position={[1.75, 1.4, 0.4]}  explodedPosition={[2.4, 1.8, 0.9]}  target={[0.6, 0.9, 0]}   mountPoint={[1.65, 1.4, 0.1]}  zone={2} distance={radars[1]?.distance ?? 3.5} detecting={radars[1]?.buildupDetected ?? false} viewMode={viewMode} isDark={isDark} isActivePath={currentActivePath === 'LEFT_SLANT'} />
+              <RadarSensor position={[-1.65, -0.6, 0.4]} explodedPosition={[-2.3, -1.0, 0.9]} target={[-1.2, -1.6, 0]} mountPoint={[-1.41, -0.6, 0.1]} zone={3} distance={radars[2]?.distance ?? 3.5} detecting={radars[2]?.buildupDetected ?? false} viewMode={viewMode} isDark={isDark} isActivePath={currentActivePath === 'LEFT_SLANT'} />
+              <RadarSensor position={[1.65, -0.6, 0.4]}  explodedPosition={[2.3, -1.0, 0.9]}  target={[1.2, -1.6, 0]}   mountPoint={[1.41, -0.6, 0.1]}  zone={4} distance={radars[3]?.distance ?? 3.5} detecting={radars[3]?.buildupDetected ?? false} viewMode={viewMode} isDark={isDark} isActivePath={currentActivePath === 'RIGHT_SLANT'} />
+
+              {/* Active Path Indicator */}
+              {viewMode !== 'maintenance' && (
+                <ActivePathIndicator
+                  activePath={currentActivePath}
+                  blockagePosition={blockagePosition}
+                  blockageDistance={blockageDistance}
+                  nearestSolenoidGroup={nearestSolenoidGroup}
+                  status={chuteStatus}
+                  simulationMode={simulationMode}
+                  isDark={isDark}
+                />
+              )}
+            </group>
+
+            <CompressorUnit pressure={pressure} motorTemp={motorTemp} viewMode={viewMode} isDark={isDark} />
+            <NighaHub isOnline={hubOnline} viewMode={viewMode} isDark={isDark} />
+            <EnvSensors temperature={liveTemperature} humidity={liveHumidity} viewMode={viewMode} isDark={isDark} />
           </group>
 
-          <CompressorUnit pressure={pressure} motorTemp={motorTemp} viewMode={viewMode} isDark={isDark} />
-          <NighaHub isOnline={hubOnline} viewMode={viewMode} isDark={isDark} />
-          <EnvSensors temperature={liveTemperature} humidity={liveHumidity} viewMode={viewMode} isDark={isDark} />
-        </group>
-
-        <OrbitControls
-          ref={controlsRef}
-          enableDamping
-          dampingFactor={0.08}
-          minDistance={4}
-          maxDistance={16}
-          maxPolarAngle={Math.PI * 0.78}
-        />
-      </Canvas>
+          <OrbitControls
+            ref={controlsRef}
+            enableDamping
+            dampingFactor={0.08}
+            minDistance={4}
+            maxDistance={16}
+            maxPolarAngle={Math.PI * 0.78}
+          />
+        </Canvas>
+      )}
     </div>
   );
 };
