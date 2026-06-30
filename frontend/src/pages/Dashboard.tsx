@@ -11,7 +11,7 @@ const ChuteDigitalTwin = React.lazy(() => import('../components/DigitalTwin/Chut
 const GlobalMap = React.lazy(() => import('../components/Map/GlobalMap').then(module => ({ default: module.GlobalMap })));
 const FleetAnalytics = React.lazy(() => import('./FleetAnalytics'));
 import AICopilot from '../components/AICopilot/AICopilot';
-import PredictivePanel from '../components/PredictiveEngine/PredictivePanel';
+const PredictivePanel = React.lazy(() => import('../components/PredictiveEngine/PredictivePanel'));
 import {
   Alert, Button, TextField, Modal, Box, Table,
   TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Drawer,
@@ -4180,7 +4180,13 @@ export const Dashboard: React.FC = () => {
               )}
 
               {expandedTile === 'ai' && (
-                <PredictivePanel activeChuteId={activeChuteId} />
+                <React.Suspense fallback={
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                    <CircularProgress color="inherit" size={30} />
+                  </div>
+                }>
+                  <PredictivePanel activeChuteId={activeChuteId} />
+                </React.Suspense>
               )}
 
               {expandedTile === 'wear' && (
