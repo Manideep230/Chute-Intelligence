@@ -12,6 +12,41 @@ export default defineConfig({
       '@asamuzakjp/css-color': path.resolve(__dirname, 'src/mock-css-color.js'),
     },
   },
+  build: {
+    // Raise the warning threshold — after splitting, individual chunks may still
+    // be large (e.g., Three.js). Suppress noise; the split itself reduces TTI.
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          // Heavy 3D/rendering layer — lazy-loaded only when digital twin opens
+          if (id.includes('three') || id.includes('@react-three')) {
+            return 'vendor-three';
+          }
+          // MUI core — large but shared across all pages; cache-stable
+          if (id.includes('@mui/material') || id.includes('@mui/system') || id.includes('@mui/base') || id.includes('@emotion')) {
+            return 'vendor-mui';
+          }
+          // Icon library — medium size, rarely changes between deploys
+          if (id.includes('lucide-react')) {
+            return 'vendor-lucide';
+          }
+          // MQTT client — only needed on Dashboard; separate chunk improves Login TTI
+          if (id.includes('mqtt')) {
+            return 'vendor-mqtt';
+          }
+          // QR code library — only used in onboarding modal
+          if (id.includes('qrcode')) {
+            return 'vendor-qrcode';
+          }
+          // Remaining node_modules into a shared vendor chunk
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+        },
+      },
+    },
+  },
   server: {
     proxy: {
       '/_/backend': {
