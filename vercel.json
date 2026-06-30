@@ -6,12 +6,12 @@
       "framework": "vite"
     },
     "backend": {
-      "entrypoint": "backend/vercel-serverless.ts",
+      "entrypoint": "backend/dist/vercel-serverless.js",
       "routePrefix": "/_/backend"
     }
   },
   "functions": {
-    "backend/vercel-serverless.ts": {
+    "backend/dist/vercel-serverless.js": {
       "maxDuration": 60,
       "memory": 1024
     }
