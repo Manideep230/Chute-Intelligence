@@ -9,5 +9,11 @@
       "entrypoint": "backend/vercel-serverless.ts",
       "routePrefix": "/_/backend"
     }
+  },
+  "functions": {
+    "backend/vercel-serverless.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
   }
 }
