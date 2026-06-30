@@ -549,35 +549,23 @@ export class IndustryService {
       throw new NotFoundException('Chute not found');
     }
 
-    const radars = await this.radarModel
-      .find({ chuteId: oId })
-      .sort({ zone: 1 })
-      .exec();
-    const blasters = await this.airBlasterModel
-      .find({ chuteId: oId })
-      .sort({ blasterNumber: 1 })
-      .exec();
-    const solenoids = await this.solenoidModel
-      .find({ chuteId: oId })
-      .sort({ valveNumber: 1 })
-      .exec();
-    const compressor = await this.compressorModel
-      .findOne({ chuteId: oId })
-      .exec();
-    const prediction = await this.aiPredictionModel
-      .findOne({ chuteId: oId })
-      .exec();
-    const health = await this.hubHealthModel.findOne({ chuteId: oId }).exec();
-    const alerts = await this.alertModel
-      .find({ chuteId: oId, isResolved: false })
-      .exec();
-
-    // Latest telemetry trend
-    const telemetry = await this.telemetryModel
-      .find({ chuteId: oId })
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .exec();
+    // Run all independent queries in parallel — each previously had its own
+    // sequential round-trip to MongoDB. Promise.all collapses them into one batch.
+    const [radars, blasters, solenoids, compressor, prediction, health, alerts, telemetry] =
+      await Promise.all([
+        this.radarModel.find({ chuteId: oId }).sort({ zone: 1 }).exec(),
+        this.airBlasterModel.find({ chuteId: oId }).sort({ blasterNumber: 1 }).exec(),
+        this.solenoidModel.find({ chuteId: oId }).sort({ valveNumber: 1 }).exec(),
+        this.compressorModel.findOne({ chuteId: oId }).exec(),
+        this.aiPredictionModel.findOne({ chuteId: oId }).exec(),
+        this.hubHealthModel.findOne({ chuteId: oId }).exec(),
+        this.alertModel.find({ chuteId: oId, isResolved: false }).exec(),
+        this.telemetryModel
+          .find({ chuteId: oId })
+          .sort({ createdAt: -1 })
+          .limit(10)
+          .exec(),
+      ]);
 
     return {
       chute,
