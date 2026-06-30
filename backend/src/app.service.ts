@@ -218,11 +218,10 @@ export class AppService implements OnModuleInit {
     }
 
     // 3. Seed Default Users
-    const userCount = await this.userModel.countDocuments().exec();
-    if (userCount === 0 && seededPlant) {
-      this.logger.log('Seeding default users...');
-      // Super Admin
-      await this.userModel.create({
+    let superAdmin = await this.userModel.findOne({ phone: '+919999999999' }).exec();
+    if (!superAdmin && seededPlant) {
+      this.logger.log('Seeding default Super Admin...');
+      superAdmin = await this.userModel.create({
         ngId: 'NGSA000001',
         name: 'Super Admin',
         phone: '+919999999999',
@@ -231,8 +230,17 @@ export class AppService implements OnModuleInit {
         organizationId: defaultOrg._id,
         assignedPlantIds: [],
       });
-      // Worker Tech
-      const worker = await this.userModel.create({
+    } else if (superAdmin && superAdmin.role !== 'Super Admin') {
+      this.logger.log('Upgrading user +919999999999 to Super Admin role...');
+      superAdmin.role = 'Super Admin';
+      superAdmin.name = 'Super Admin';
+      await superAdmin.save();
+    }
+
+    let workerUser = await this.userModel.findOne({ phone: '+918888888888' }).exec();
+    if (!workerUser && seededPlant) {
+      this.logger.log('Seeding default Worker Tech...');
+      workerUser = await this.userModel.create({
         ngId: 'NGNEV000001',
         name: 'Worker Tech',
         phone: '+918888888888',
@@ -251,7 +259,7 @@ export class AppService implements OnModuleInit {
         try {
           const assignmentModel = this.userModel.db.model('Assignment');
           await assignmentModel.create({
-            userId: worker._id,
+            userId: workerUser._id,
             plantId: seededPlant._id,
             chuteId: seededChute._id,
           });
@@ -260,10 +268,6 @@ export class AppService implements OnModuleInit {
           this.logger.warn(`Could not seed assignment: ${e.message}`);
         }
       }
-
-      this.logger.log(
-        'Seed users successfully created. Super Admin: +919999999999, Worker: +918888888888 (OTP: 123456)',
-      );
     }
   }
 
