@@ -132,10 +132,19 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     private chuteUptimeLogModel: Model<ChuteUptimeLogDocument>,
     @InjectModel(MaintenanceTicket.name)
     private maintenanceTicketModel: Model<MaintenanceTicketDocument>,
-  ) {}
+  ) {
+    console.log(`[ENTER] [MqttService] Constructor started.`);
+  }
 
   async onModuleInit() {
-    await this.connectToBroker();
+    console.log(`[ENTER] [MqttService.onModuleInit] Initializing MqttService...`);
+    try {
+      await this.connectToBroker();
+      console.log(`[EXIT] [MqttService.onModuleInit] MqttService successfully initialized.`);
+    } catch (err: any) {
+      console.error(`[ERROR] [MqttService.onModuleInit] Failure during onModuleInit:`, err);
+      throw err;
+    }
   }
 
   onModuleDestroy() {

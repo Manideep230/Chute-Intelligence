@@ -49,7 +49,16 @@ export class AuthController {
     description: 'OTP code generated and logged to console.',
   })
   async requestOtp(@Body() body: RequestOtpDto) {
-    return this.authService.requestOtp(body.phone);
+    console.log(`[REQUEST_RECEIVED] [AuthController.requestOtp] Phone: ${body.phone}`);
+    console.log(`[ENTER] [AuthController.requestOtp] Delegating to AuthService.`);
+    try {
+      const result = await this.authService.requestOtp(body.phone);
+      console.log(`[EXIT] [AuthController.requestOtp] Successfully requested OTP.`);
+      return result;
+    } catch (err: any) {
+      console.error(`[ERROR] [AuthController.requestOtp] Error:`, err);
+      throw err;
+    }
   }
 
   @Post('verify-otp')

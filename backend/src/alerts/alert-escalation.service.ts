@@ -28,16 +28,26 @@ export class AlertEscalationService implements OnModuleInit, OnModuleDestroy {
     private notificationModel: Model<NotificationDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Chute.name) private chuteModel: Model<ChuteDocument>,
-  ) {}
+  ) {
+    console.log(`[ENTER] [AlertEscalationService] Constructor started.`);
+  }
 
   onModuleInit() {
-    if (process.env.VERCEL || process.env.DISABLE_ALERT_ESCALATION === 'true') {
-      this.logger.log('Running in serverless/Vercel context. Skipping background Alert Escalation engine.');
-      return;
+    console.log(`[ENTER] [AlertEscalationService.onModuleInit] Initializing AlertEscalationService...`);
+    try {
+      if (process.env.VERCEL || process.env.DISABLE_ALERT_ESCALATION === 'true') {
+        this.logger.log('Running in serverless/Vercel context. Skipping background Alert Escalation engine.');
+        console.log(`[EXIT] [AlertEscalationService.onModuleInit] Bypassed on Vercel.`);
+        return;
+      }
+      this.logger.log('Initializing Alert Escalation engine...');
+      // Run the scan every 30 seconds
+      this.checkInterval = setInterval(() => this.scanAndEscalateAlerts(), 30000);
+      console.log(`[EXIT] [AlertEscalationService.onModuleInit] AlertEscalationService successfully initialized.`);
+    } catch (err: any) {
+      console.error(`[ERROR] [AlertEscalationService.onModuleInit] Failure during onModuleInit:`, err);
+      throw err;
     }
-    this.logger.log('Initializing Alert Escalation engine...');
-    // Run the scan every 30 seconds
-    this.checkInterval = setInterval(() => this.scanAndEscalateAlerts(), 30000);
   }
 
   onModuleDestroy() {

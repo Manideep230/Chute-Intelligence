@@ -50,13 +50,18 @@ export class AppService implements OnModuleInit {
     @InjectModel(Organization.name)
     private orgModel: Model<OrganizationDocument>,
     @InjectModel(Region.name) private regionModel: Model<RegionDocument>,
-  ) {}
+  ) {
+    console.log(`[ENTER] [AppService] Constructor started.`);
+  }
 
   async onModuleInit() {
+    console.log(`[ENTER] [AppService.onModuleInit] Initializing AppService...`);
     try {
       await this.seedData();
-    } catch (err) {
-      this.logger.error(`Database seeding failed: ${err.message}`);
+      console.log(`[EXIT] [AppService.onModuleInit] AppService successfully initialized.`);
+    } catch (err: any) {
+      console.error(`[ERROR] [AppService.onModuleInit] Failure during onModuleInit:`, err);
+      throw err;
     }
   }
 

@@ -201,31 +201,46 @@ export class AuthService {
     });
   }
 
-  // Request OTP for Login
   async requestOtp(phone: string): Promise<{ message: string; otp?: string }> {
-    let user: any = await this.userModel.findOne({ phone }).exec();
-    if (!user) {
-      user = await this.register('New User', phone, 'Worker');
+    console.log(`[AUTH_SERVICE_ENTER] [AuthService.requestOtp] Starting OTP flow for ${phone}`);
+    try {
+      console.log(`[DATABASE_QUERY_START] [AuthService.requestOtp] Finding user by phone...`);
+      let user: any = await this.userModel.findOne({ phone }).exec();
+      console.log(`[DATABASE_QUERY_END] [AuthService.requestOtp] User lookup complete. Found: ${!!user}`);
+      if (!user) {
+        console.log(`[AUTH_SERVICE_REGISTER] [AuthService.requestOtp] Registering new user...`);
+        user = await this.register('New User', phone, 'Worker');
+      }
+
+      // Generate 6 digit OTP to match DLT registered template ID
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      console.log(`[OTP_GENERATED] [AuthService.requestOtp] Generated OTP.`);
+      const expires = new Date(Date.now() + 5 * 60 * 1000); // 5 mins expiry
+
+      user.otp = otp;
+      user.otpExpires = expires;
+      
+      console.log(`[DATABASE_WRITE_START] [AuthService.requestOtp] Saving OTP to user...`);
+      await user.save();
+      console.log(`[DATABASE_WRITE_END] [AuthService.requestOtp] Saved OTP successfully.`);
+
+      // Log to console
+      console.log(`[SMS-MOCK] OTP for login of ${phone} is: ${otp}`);
+
+      // Trigger SMS sending
+      console.log(`[SMS-REQUEST_START] [AuthService.requestOtp] Triggering SMS API request...`);
+      await this.sendSmsOtp(phone, otp);
+      console.log(`[SMS-REQUEST_END] [AuthService.requestOtp] SMS API trigger completed.`);
+
+      console.log(`[RESPONSE_SENT] [AuthService.requestOtp] Returning response.`);
+      return {
+        message: 'OTP sent successfully',
+        otp: process.env.NODE_ENV === 'production' ? undefined : otp,
+      };
+    } catch (err: any) {
+      console.error(`[ERROR] [AuthService.requestOtp] Error:`, err);
+      throw err;
     }
-
-    // Generate 6 digit OTP to match DLT registered template ID
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = new Date(Date.now() + 5 * 60 * 1000); // 5 mins expiry
-
-    user.otp = otp;
-    user.otpExpires = expires;
-    await user.save();
-
-    // Log to console
-    console.log(`[SMS-MOCK] OTP for login of ${phone} is: ${otp}`);
-
-    // Trigger SMS sending
-    await this.sendSmsOtp(phone, otp);
-
-    return {
-      message: 'OTP sent successfully',
-      otp: process.env.NODE_ENV === 'production' ? undefined : otp,
-    };
   }
 
   // Verify OTP for Login
