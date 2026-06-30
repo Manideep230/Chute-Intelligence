@@ -398,21 +398,23 @@ export const Dashboard: React.FC = () => {
     setThroughputHistory(history);
   }, [activeChuteId]);
 
-  // Fetch initial plants & chutes
+  // Fetch initial plants & chutes in parallel — they are independent requests
   useEffect(() => {
-    const fetchChutes = async () => {
+    const fetchInitialData = async () => {
       try {
-        const res = await fetch('/_/backend/industry/chutes', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Failed to fetch chutes');
+        const [chutesRes, plantsRes] = await Promise.all([
+          fetch('/_/backend/industry/chutes', { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch('/_/backend/industry/plants', { headers: { 'Authorization': `Bearer ${token}` } }),
+        ]);
 
-        const plRes = await fetch('/_/backend/industry/plants', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const plData = await plRes.json();
-        const plants = plRes.ok ? plData : [];
+        const [data, plData] = await Promise.all([
+          chutesRes.json(),
+          plantsRes.json(),
+        ]);
+
+        if (!chutesRes.ok) throw new Error(data.message || 'Failed to fetch chutes');
+
+        const plants = plantsRes.ok ? plData : [];
         setPlantsList(plants);
         if (plants.length > 0) {
           setRegPlantId(plants[0]._id);
@@ -435,7 +437,7 @@ export const Dashboard: React.FC = () => {
         setLoading(false);
       }
     };
-    fetchChutes();
+    fetchInitialData();
   }, [token, setActiveChute]);
 
   // Fetch specific chute detail telemetry
