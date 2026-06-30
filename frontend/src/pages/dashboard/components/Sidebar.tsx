@@ -12,7 +12,7 @@ interface SidebarProps {
   theme: 'dark' | 'light';
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
+export const Sidebar: React.FC<SidebarProps> = React.memo(({
   navItems,
   activeTab,
   setActiveTab,
@@ -110,4 +110,4 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
     </div>
   );
-};
+});

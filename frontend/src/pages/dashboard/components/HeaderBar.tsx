@@ -21,7 +21,7 @@ interface HeaderBarProps {
   handleThemeToggle: () => void;
 }
 
-export const HeaderBar: React.FC<HeaderBarProps> = ({
+export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
   chutes,
   activeChuteId,
   setActiveChute,
@@ -163,4 +163,4 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
       </div>
     </div>
   );
-};
+});

@@ -11,7 +11,7 @@ interface MaintenanceTabProps {
   theme: 'dark' | 'light';
 }
 
-export const MaintenanceTab: React.FC<MaintenanceTabProps> = ({
+export const MaintenanceTab: React.FC<MaintenanceTabProps> = React.memo(({
   maintenanceTickets,
   roleAccess,
   token,
@@ -152,4 +152,4 @@ export const MaintenanceTab: React.FC<MaintenanceTabProps> = ({
       </div>
     </div>
   );
-};
+});

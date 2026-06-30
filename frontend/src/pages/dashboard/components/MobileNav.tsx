@@ -10,7 +10,7 @@ interface MobileNavProps {
   theme: 'dark' | 'light';
 }
 
-export const MobileNav: React.FC<MobileNavProps> = ({
+export const MobileNav: React.FC<MobileNavProps> = React.memo(({
   activeTab,
   setActiveTab,
   expandedTile,
@@ -74,4 +74,4 @@ export const MobileNav: React.FC<MobileNavProps> = ({
       </button>
     </div>
   );
-};
+});

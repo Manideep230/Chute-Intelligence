@@ -7,7 +7,7 @@ interface AuditTabProps {
   theme: 'dark' | 'light';
 }
 
-export const AuditTab: React.FC<AuditTabProps> = ({ auditLogs, theme }) => {
+export const AuditTab: React.FC<AuditTabProps> = React.memo(({ auditLogs, theme }) => {
   const colors = getThemeColors(theme);
   const BLUE = colors.BLUE;
 
@@ -53,4 +53,4 @@ export const AuditTab: React.FC<AuditTabProps> = ({ auditLogs, theme }) => {
       </div>
     </div>
   );
-};
+});
