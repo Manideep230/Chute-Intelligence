@@ -51,3 +51,4 @@ export class MaintenanceTicket {
 
 export const MaintenanceTicketSchema =
   SchemaFactory.createForClass(MaintenanceTicket);
+MaintenanceTicketSchema.index({ chuteId: 1, createdAt: -1 });

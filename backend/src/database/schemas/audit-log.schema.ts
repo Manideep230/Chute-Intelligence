@@ -19,6 +19,8 @@ export class AuditLog {
 }
 
 export const AuditLogSchema = SchemaFactory.createForClass(AuditLog);
+AuditLogSchema.index({ createdAt: -1 });
+AuditLogSchema.index({ userId: 1, createdAt: -1 });
 
 // Enforce database-level immutability using modern async throw patterns
 AuditLogSchema.pre('save', async function () {
