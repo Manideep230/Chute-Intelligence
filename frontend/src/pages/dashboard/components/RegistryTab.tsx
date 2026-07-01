@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { getThemeColors } from '../constants';
 import { QrChuteRegisterModal } from './modals/QrChuteRegisterModal';
 
@@ -340,6 +340,111 @@ export const RegistryTab: React.FC<RegistryTabProps> = ({
     }
   };
 
+  const plantsListSection = useMemo(() => (
+    <div className="glass-panel" style={{ padding: '20px', borderRadius: '12px' }}>
+      <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '12px', color: 'var(--text-primary)' }}>Registered Plants ({plantsList.length})</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '500px', overflowY: 'auto' }}>
+        {plantsList.length === 0 ? (
+          <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '24px' }}>No plants registered yet</div>
+        ) : (
+          plantsList.map((p: any) => (
+            <div key={p._id} className="glass-card" style={{ padding: '12px', opacity: p.isActive ? 1 : 0.6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>{p.name}</span>
+                    <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '10px', background: p.isActive ? 'rgba(52,211,153,0.1)' : 'rgba(100,100,100,0.2)', color: p.isActive ? GREEN : 'var(--text-muted)', fontWeight: 800 }}>
+                      {p.isActive ? 'ACTIVE' : 'DISABLED'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '10px', color: BLUE, fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{p.ngPrefix}XXXXXX — {p.industryType || 'Mining'}</div>
+                  {p.ownerName && <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '2px' }}>Owner: {p.ownerName}</div>}
+                  {p.address && <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{p.address}</div>}
+                </div>
+                <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                  <button onClick={() => handleOpenEditPlant(p)} style={{ padding: '4px 8px', fontSize: '10px', borderRadius: '4px', border: `1px solid ${BLUE}40`, background: `${BLUE}15`, color: BLUE, cursor: 'pointer', fontWeight: 600 }}>Edit</button>
+                  <button onClick={() => handleTogglePlantActive(p)} style={{ padding: '4px 8px', fontSize: '10px', borderRadius: '4px', border: `1px solid ${p.isActive ? RED : GREEN}40`, background: `${p.isActive ? RED : GREEN}15`, color: p.isActive ? RED : GREEN, cursor: 'pointer', fontWeight: 600 }}>
+                    {p.isActive ? 'Disable' : 'Enable'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  ), [plantsList, theme]);
+
+  const chutesListSection = useMemo(() => (
+    <div className="glass-panel" style={{ padding: '20px', borderRadius: '12px' }}>
+      <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '12px', color: 'var(--text-primary)' }}>Registered Fleet ({chutes.length})</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '500px', overflowY: 'auto' }}>
+        {chutes.length === 0 ? (
+          <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '24px' }}>No chutes registered yet</div>
+        ) : (
+          chutes.map((c: any) => (
+            <div key={c._id} className="glass-card" style={{ padding: '10px', opacity: c.isActive ? 1 : 0.6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700 }}>{c.name}</span>
+                    <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '10px', background: c.isActive ? (c.status === 'Normal' ? 'rgba(52,211,153,0.1)' : 'rgba(244,63,94,0.1)') : 'rgba(100,100,100,0.2)', color: c.isActive ? (c.status === 'Normal' ? GREEN : RED) : 'var(--text-muted)', fontWeight: 800 }}>
+                      {c.isActive ? c.status?.toUpperCase() : 'DISABLED'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '10px', color: BLUE, fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{c.chuteCode || 'No Code'}</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Plant: {c.plantName} | Mat: {c.materialType || 'generic'}</div>
+                </div>
+                <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                  <button onClick={() => handleOpenEditChute(c)} style={{ padding: '4px 8px', fontSize: '10px', borderRadius: '4px', border: `1px solid ${BLUE}40`, background: `${BLUE}15`, color: BLUE, cursor: 'pointer', fontWeight: 600 }}>Edit</button>
+                  <button onClick={() => handleToggleChuteActive(c)} style={{ padding: '4px 8px', fontSize: '10px', borderRadius: '4px', border: `1px solid ${c.isActive ? RED : GREEN}40`, background: `${c.isActive ? RED : GREEN}15`, color: c.isActive ? RED : GREEN, cursor: 'pointer', fontWeight: 600 }}>
+                    {c.isActive ? 'Disable' : 'Enable'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  ), [chutes, theme]);
+
+  const assignmentsListSection = useMemo(() => (
+    <div className="glass-panel" style={{ padding: '20px', borderRadius: '12px' }}>
+      <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '12px', color: 'var(--text-primary)' }}>Active Assignments ({assignments.length})</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '400px', overflowY: 'auto' }}>
+        {assignments.length === 0 ? (
+          <div style={{ color: 'var(--text-muted)', fontSize: '12px', padding: '10px', textAlign: 'center' }}>No active assignments registered</div>
+        ) : (
+          assignments.map((a: any) => (
+            <div key={a._id} className="glass-card" style={{ padding: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>{a.userId?.name || 'Unknown User'}</div>
+                <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                  {a.userId?.ngId && <span style={{ fontFamily: 'var(--font-mono)', color: BLUE, fontWeight: 700 }}>[{a.userId.ngId}] </span>}
+                  {a.userId?.role || 'Unknown role'}
+                </div>
+                <div style={{ fontSize: '10px', color: BLUE, fontWeight: 600, marginTop: '2px' }}>
+                  {a.plantId ? `🏭 Plant: ${a.plantId.name || a.plantId}` : a.chuteId ? `⚙️ Chute: ${a.chuteId.name || a.chuteId}` : 'N/A'}
+                </div>
+              </div>
+              <button
+                onClick={() => handleDeleteAssignment(a._id)}
+                style={{
+                  padding: '5px 10px', fontSize: '11px', borderRadius: '4px',
+                  border: `1px solid ${RED}30`, background: 'rgba(244,63,94,0.1)',
+                  color: RED, cursor: 'pointer', fontWeight: 700
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  ), [assignments, theme]);
+
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
       <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -457,38 +562,7 @@ export const RegistryTab: React.FC<RegistryTabProps> = ({
               </div>
 
               {/* Plants List */}
-              <div className="glass-panel" style={{ padding: '20px', borderRadius: '12px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '12px', color: 'var(--text-primary)' }}>Registered Plants ({plantsList.length})</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '500px', overflowY: 'auto' }}>
-                  {plantsList.length === 0 ? (
-                    <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '24px' }}>No plants registered yet</div>
-                  ) : (
-                    plantsList.map((p: any) => (
-                      <div key={p._id} className="glass-card" style={{ padding: '12px', opacity: p.isActive ? 1 : 0.6 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>{p.name}</span>
-                              <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '10px', background: p.isActive ? 'rgba(52,211,153,0.1)' : 'rgba(100,100,100,0.2)', color: p.isActive ? GREEN : 'var(--text-muted)', fontWeight: 800 }}>
-                                {p.isActive ? 'ACTIVE' : 'DISABLED'}
-                              </span>
-                            </div>
-                            <div style={{ fontSize: '10px', color: BLUE, fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{p.ngPrefix}XXXXXX — {p.industryType || 'Mining'}</div>
-                            {p.ownerName && <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '2px' }}>Owner: {p.ownerName}</div>}
-                            {p.address && <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{p.address}</div>}
-                          </div>
-                          <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-                            <button onClick={() => handleOpenEditPlant(p)} style={{ padding: '4px 8px', fontSize: '10px', borderRadius: '4px', border: `1px solid ${BLUE}40`, background: `${BLUE}15`, color: BLUE, cursor: 'pointer', fontWeight: 600 }}>Edit</button>
-                            <button onClick={() => handleTogglePlantActive(p)} style={{ padding: '4px 8px', fontSize: '10px', borderRadius: '4px', border: `1px solid ${p.isActive ? RED : GREEN}40`, background: `${p.isActive ? RED : GREEN}15`, color: p.isActive ? RED : GREEN, cursor: 'pointer', fontWeight: 600 }}>
-                              {p.isActive ? 'Disable' : 'Enable'}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+              {plantsListSection}
             </div>
           </div>
         )}
@@ -558,37 +632,7 @@ export const RegistryTab: React.FC<RegistryTabProps> = ({
               </div>
 
               {/* Chute Fleet List */}
-              <div className="glass-panel" style={{ padding: '20px', borderRadius: '12px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '12px', color: 'var(--text-primary)' }}>Registered Fleet ({chutes.length})</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '500px', overflowY: 'auto' }}>
-                  {chutes.length === 0 ? (
-                    <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '24px' }}>No chutes registered yet</div>
-                  ) : (
-                    chutes.map((c: any) => (
-                      <div key={c._id} className="glass-card" style={{ padding: '10px', opacity: c.isActive ? 1 : 0.6 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
-                              <span style={{ fontSize: '12px', fontWeight: 700 }}>{c.name}</span>
-                              <span style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '10px', background: c.isActive ? (c.status === 'Normal' ? 'rgba(52,211,153,0.1)' : 'rgba(244,63,94,0.1)') : 'rgba(100,100,100,0.2)', color: c.isActive ? (c.status === 'Normal' ? GREEN : RED) : 'var(--text-muted)', fontWeight: 800 }}>
-                                {c.isActive ? c.status?.toUpperCase() : 'DISABLED'}
-                              </span>
-                            </div>
-                            <div style={{ fontSize: '10px', color: BLUE, fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{c.chuteCode || 'No Code'}</div>
-                            <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Plant: {c.plantName} | Mat: {c.materialType || 'generic'}</div>
-                          </div>
-                          <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-                            <button onClick={() => handleOpenEditChute(c)} style={{ padding: '4px 8px', fontSize: '10px', borderRadius: '4px', border: `1px solid ${BLUE}40`, background: `${BLUE}15`, color: BLUE, cursor: 'pointer', fontWeight: 600 }}>Edit</button>
-                            <button onClick={() => handleToggleChuteActive(c)} style={{ padding: '4px 8px', fontSize: '10px', borderRadius: '4px', border: `1px solid ${c.isActive ? RED : GREEN}40`, background: `${c.isActive ? RED : GREEN}15`, color: c.isActive ? RED : GREEN, cursor: 'pointer', fontWeight: 600 }}>
-                              {c.isActive ? 'Disable' : 'Enable'}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+              {chutesListSection}
             </div>
           </div>
         )}
@@ -648,35 +692,7 @@ export const RegistryTab: React.FC<RegistryTabProps> = ({
               </div>
 
               {/* Active Assignments List */}
-              <div className="glass-panel" style={{ padding: '20px', borderRadius: '12px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 700, marginBottom: '12px', color: 'var(--text-primary)' }}>Active Assignments ({assignments.length})</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '400px', overflowY: 'auto' }}>
-                  {assignments.length === 0 ? (
-                    <div style={{ color: 'var(--text-muted)', fontSize: '12px', padding: '10px', textAlign: 'center' }}>No active assignments registered</div>
-                  ) : (
-                    assignments.map((a: any) => (
-                      <div key={a._id} className="glass-card" style={{ padding: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>{a.userId?.name || 'Unknown User'}</div>
-                          <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
-                            {a.userId?.ngId && <span style={{ fontFamily: 'var(--font-mono)', color: BLUE, fontWeight: 700 }}>[{a.userId.ngId}] </span>}
-                            {a.userId?.role || 'Unknown role'}
-                          </div>
-                          <div style={{ fontSize: '10px', color: BLUE, fontWeight: 600, marginTop: '2px' }}>
-                            {a.plantId ? `🏭 Plant: ${a.plantId.name || a.plantId}` : a.chuteId ? `⚙️ Chute: ${a.chuteId.name || a.chuteId}` : 'N/A'}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => handleDeleteAssignment(a._id)}
-                          style={{ padding: '4px 10px', fontSize: '10.5px', borderRadius: '4px', border: `1px solid ${RED}40`, background: `${RED}15`, color: RED, cursor: 'pointer', fontWeight: 600 }}
-                        >
-                          Revoke
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+              {assignmentsListSection}
             </div>
           </div>
         )}

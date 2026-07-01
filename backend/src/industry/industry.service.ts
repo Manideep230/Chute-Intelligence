@@ -100,25 +100,29 @@ export class IndustryService {
         .find({
           _id: { $in: plantIds.map((id: string) => new Types.ObjectId(id)) },
         })
-        .exec();
+        .lean()
+        .exec() as any;
     }
     if (user && user.role === 'Manager') {
       const assignments = await this.assignmentModel
         .find({ userId: user._id, plantId: { $ne: null } })
+        .lean()
         .exec();
       const plantIds = assignments.map((a) => a.plantId);
-      return this.plantModel.find({ _id: { $in: plantIds } }).exec();
+      return this.plantModel.find({ _id: { $in: plantIds } }).lean().exec() as any;
     }
     if (user && user.role === 'Worker') {
       const assignments = await this.assignmentModel
         .find({ userId: user._id, chuteId: { $ne: null } })
+        .lean()
         .exec();
       const chuteIds = assignments.map((a) => a.chuteId);
       const chutes = await this.chuteModel
         .find({ _id: { $in: chuteIds } })
+        .lean()
         .exec();
       const plantIds = chutes.map((c) => c.plantId);
-      return this.plantModel.find({ _id: { $in: plantIds } }).exec();
+      return this.plantModel.find({ _id: { $in: plantIds } }).lean().exec() as any;
     }
 
     const cacheKey = 'plants_all';
@@ -128,7 +132,7 @@ export class IndustryService {
         return cached;
       }
     }
-    const plants = await this.plantModel.find().exec();
+    const plants = await this.plantModel.find().lean().exec() as any;
     if (process.env.NODE_ENV !== 'test') {
       await this.cacheService.set(cacheKey, plants, 60);
     }
@@ -211,6 +215,7 @@ export class IndustryService {
       } else if (user.role === 'Manager' || user.role === 'Worker') {
         const assignments = await this.assignmentModel
           .find({ userId: user._id })
+          .lean()
           .exec();
         const allowedChuteIds = assignments
           .filter((a) => a.chuteId)
@@ -229,6 +234,7 @@ export class IndustryService {
           });
           const plantChutes = await this.chuteModel
             .find({ plantId: { $in: matchers } })
+            .lean()
             .exec();
           plantChutes.forEach((c) => {
             const idStr = (c as any)._id.toString();
@@ -244,7 +250,7 @@ export class IndustryService {
       }
     }
 
-    const results = await this.chuteModel.find(query).exec();
+    const results = await this.chuteModel.find(query).lean().exec() as any;
     return results;
   }
 
@@ -544,7 +550,7 @@ export class IndustryService {
   // --- DETAILED CHUTE STATUS ---
   async getChuteDetail(chuteId: string): Promise<any> {
     const oId = new Types.ObjectId(chuteId);
-    const chute = await this.chuteModel.findById(oId).exec();
+    const chute = await this.chuteModel.findById(oId).lean().exec();
     if (!chute) {
       throw new NotFoundException('Chute not found');
     }
@@ -553,17 +559,18 @@ export class IndustryService {
     // sequential round-trip to MongoDB. Promise.all collapses them into one batch.
     const [radars, blasters, solenoids, compressor, prediction, health, alerts, telemetry] =
       await Promise.all([
-        this.radarModel.find({ chuteId: oId }).sort({ zone: 1 }).exec(),
-        this.airBlasterModel.find({ chuteId: oId }).sort({ blasterNumber: 1 }).exec(),
-        this.solenoidModel.find({ chuteId: oId }).sort({ valveNumber: 1 }).exec(),
-        this.compressorModel.findOne({ chuteId: oId }).exec(),
-        this.aiPredictionModel.findOne({ chuteId: oId }).exec(),
-        this.hubHealthModel.findOne({ chuteId: oId }).exec(),
-        this.alertModel.find({ chuteId: oId, isResolved: false }).exec(),
+        this.radarModel.find({ chuteId: oId }).sort({ zone: 1 }).lean().exec(),
+        this.airBlasterModel.find({ chuteId: oId }).sort({ blasterNumber: 1 }).lean().exec(),
+        this.solenoidModel.find({ chuteId: oId }).sort({ valveNumber: 1 }).lean().exec(),
+        this.compressorModel.findOne({ chuteId: oId }).lean().exec(),
+        this.aiPredictionModel.findOne({ chuteId: oId }).lean().exec(),
+        this.hubHealthModel.findOne({ chuteId: oId }).lean().exec(),
+        this.alertModel.find({ chuteId: oId, isResolved: false }).lean().exec(),
         this.telemetryModel
           .find({ chuteId: oId })
           .sort({ createdAt: -1 })
           .limit(10)
+          .lean()
           .exec(),
       ]);
 
@@ -926,6 +933,7 @@ export class IndustryService {
         .find({
           assignedPlantIds: { $in: user.assignedPlantIds },
         })
+        .lean()
         .exec();
       const userIds = allowedUsers.map((u) => u._id);
       query.userId = { $in: userIds };
@@ -935,7 +943,8 @@ export class IndustryService {
       .populate('userId', 'name ngId role')
       .sort({ createdAt: -1 })
       .limit(100)
-      .exec();
+      .lean()
+      .exec() as any;
   }
 
   // --- NOTIFICATIONS ---
@@ -943,7 +952,8 @@ export class IndustryService {
     return this.notificationModel
       .find({ userId: new Types.ObjectId(userId) })
       .sort({ createdAt: -1 })
-      .exec();
+      .lean()
+      .exec() as any;
   }
 
   // --- MAINTENANCE TICKETS ---
@@ -959,7 +969,8 @@ export class IndustryService {
       .populate('chuteId', 'name')
       .populate('assignedTo', 'name ngId role')
       .sort({ createdAt: -1 })
-      .exec();
+      .lean()
+      .exec() as any;
   }
 
   async createMaintenanceTicket(data: any): Promise<MaintenanceTicket> {
@@ -1284,6 +1295,7 @@ export class IndustryService {
       } else if (user.role === 'Manager') {
         const managerAssignments = await this.assignmentModel
           .find({ userId: user._id })
+          .lean()
           .exec();
         const plantIds = managerAssignments
           .filter((a) => a.plantId)
@@ -1305,7 +1317,8 @@ export class IndustryService {
       .populate('userId', 'name role phone ngId')
       .populate('plantId', 'name location')
       .populate('chuteId', 'name')
-      .exec();
+      .lean()
+      .exec() as any;
   }
 
   async createAssignment(

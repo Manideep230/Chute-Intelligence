@@ -28,7 +28,7 @@ interface DrillDownDrawerProps {
   wearIndex: number;
 }
 
-export const DrillDownDrawer: React.FC<DrillDownDrawerProps> = ({
+export const DrillDownDrawer: React.FC<DrillDownDrawerProps> = React.memo(({
   expandedTile,
   onClose,
   activeChuteId,
@@ -296,4 +296,4 @@ export const DrillDownDrawer: React.FC<DrillDownDrawerProps> = ({
       ) : null}
     </Drawer>
   );
-};
+});

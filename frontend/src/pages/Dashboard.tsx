@@ -457,50 +457,58 @@ export const Dashboard: React.FC = () => {
       <AICopilot activeChuteId={activeChuteId} />
 
       {/* Detail drawer for drill-down metric inspections */}
-      <DrillDownDrawer
-        expandedTile={expandedTile}
-        onClose={() => setExpandedTile(null)}
-        activeChuteId={activeChuteId}
-        theme={theme}
-        twinRotationX={twinRotationX}
-        radars={radars}
-        chuteHealthScore={chuteHealthScore}
-        chuteKpis={chuteKpis}
-        avgBlasterHealth={avgBlasterHealth}
-        blastEffScore={blastEffScore}
-        compHealth={compHealth}
-        solenoids={solenoids}
-        liveTemperature={liveTemperature}
-        liveHumidity={liveHumidity}
-        timelineEvents={timelineEvents}
-        roleAccess={roleAccess}
-        handleResolveAlert={handleResolveAlert}
-        wearIndex={wearIndex}
-      />
+      {expandedTile && (
+        <DrillDownDrawer
+          expandedTile={expandedTile}
+          onClose={() => setExpandedTile(null)}
+          activeChuteId={activeChuteId}
+          theme={theme}
+          twinRotationX={twinRotationX}
+          radars={radars}
+          chuteHealthScore={chuteHealthScore}
+          chuteKpis={chuteKpis}
+          avgBlasterHealth={avgBlasterHealth}
+          blastEffScore={blastEffScore}
+          compHealth={compHealth}
+          solenoids={solenoids}
+          liveTemperature={liveTemperature}
+          liveHumidity={liveHumidity}
+          timelineEvents={timelineEvents}
+          roleAccess={roleAccess}
+          handleResolveAlert={handleResolveAlert}
+          wearIndex={wearIndex}
+        />
+      )}
 
       {/* Modals */}
-      <ReportModal
-        open={reportModalOpen}
-        onClose={() => setReportModalOpen(false)}
-        activeChuteId={activeChuteId}
-        token={token}
-        theme={theme}
-      />
+      {reportModalOpen && (
+        <ReportModal
+          open={reportModalOpen}
+          onClose={() => setReportModalOpen(false)}
+          activeChuteId={activeChuteId}
+          token={token}
+          theme={theme}
+        />
+      )}
 
-      <CalibrationWizard
-        open={calibModalOpen}
-        onClose={() => setCalibModalOpen(false)}
-        activeChuteId={activeChuteId}
-        token={token}
-        theme={theme}
-      />
+      {calibModalOpen && (
+        <CalibrationWizard
+          open={calibModalOpen}
+          onClose={() => setCalibModalOpen(false)}
+          activeChuteId={activeChuteId}
+          token={token}
+          theme={theme}
+        />
+      )}
 
-      <BlockageModal
-        open={blockageModalOpen}
-        onClose={() => setBlockageModalOpen(false)}
-        onInject={handleBlockageInject}
-        theme={theme}
-      />
+      {blockageModalOpen && (
+        <BlockageModal
+          open={blockageModalOpen}
+          onClose={() => setBlockageModalOpen(false)}
+          onInject={handleBlockageInject}
+          theme={theme}
+        />
+      )}
     </div>
   );
 };

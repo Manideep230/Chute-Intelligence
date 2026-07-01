@@ -5,13 +5,13 @@ export type AssignmentDocument = Assignment & Document;
 
 @Schema({ timestamps: true })
 export class Assignment {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   userId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Plant', default: null })
+  @Prop({ type: Types.ObjectId, ref: 'Plant', default: null, index: true })
   plantId: Types.ObjectId; // For Admins/Managers
 
-  @Prop({ type: Types.ObjectId, ref: 'Chute', default: null })
+  @Prop({ type: Types.ObjectId, ref: 'Chute', default: null, index: true })
   chuteId: Types.ObjectId; // For Workers/Managers
 }
 
