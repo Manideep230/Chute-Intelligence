@@ -219,7 +219,7 @@ export class AppService implements OnModuleInit {
 
     // 3. Seed Default Users
     let superAdmin = await this.userModel.findOne({ phone: '+919999999999' }).exec();
-    if (!superAdmin && seededPlant) {
+    if (!superAdmin) {
       this.logger.log('Seeding default Super Admin...');
       superAdmin = await this.userModel.create({
         ngId: 'NGSA000001',
