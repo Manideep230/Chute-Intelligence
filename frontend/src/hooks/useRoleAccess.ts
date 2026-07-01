@@ -2,20 +2,23 @@ import { useAuthStore } from '../store/authStore';
 
 export type UserRole = 'Super Admin' | 'Admin' | 'Manager' | 'Worker';
 
-const ROLE_LEVELS: Record<UserRole, number> = {
-  'Super Admin': 4,
-  'Admin': 3,
-  'Manager': 2,
-  'Worker': 1,
+const ROLE_LEVELS: Record<string, number> = {
+  'super admin': 4,
+  'superadmin': 4,
+  'super_admin': 4,
+  'admin': 3,
+  'manager': 2,
+  'worker': 1,
 };
 
 export function useRoleAccess() {
   const { user } = useAuthStore();
-  const role = (user?.role ?? 'Worker') as UserRole;
-  const level = ROLE_LEVELS[role] ?? 1;
+  const rawRole = user?.role ?? 'Worker';
+  const roleKey = rawRole.toLowerCase().trim();
+  const level = ROLE_LEVELS[roleKey] ?? ROLE_LEVELS[roleKey.replace(/[\s_-]+/g, '')] ?? 1;
 
   return {
-    role,
+    role: rawRole as UserRole,
     level,
     isSuperAdmin: level >= 4,
     isAdmin: level >= 3,

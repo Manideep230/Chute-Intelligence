@@ -27,7 +27,9 @@ export const RegistryTab: React.FC<RegistryTabProps> = ({
   setPlantsList,
   loadAssignments,
 }) => {
-  const [registrySubTab, setRegistrySubTab] = useState<'plants' | 'chutes' | 'assignments'>('plants');
+  const [registrySubTab, setRegistrySubTab] = useState<'plants' | 'chutes' | 'assignments'>(
+    roleAccess.isSuperAdmin ? 'plants' : 'chutes'
+  );
 
   // Plant creation form state
   const [plantRegName, setPlantRegName] = useState('');

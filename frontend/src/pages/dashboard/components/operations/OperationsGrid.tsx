@@ -77,6 +77,7 @@ export const OperationsGrid: React.FC<OperationsGridProps> = ({
     compressor,
     liveTemperature,
     liveHumidity,
+    prediction,
   } = useTelemetryStore();
 
   const [injZone, setInjZone] = useState<number>(1);
@@ -99,8 +100,6 @@ export const OperationsGrid: React.FC<OperationsGridProps> = ({
 
   // Local static histories to simulate sparklines
   const healthHistory = [95, 96, 94, 95, 92, 90, 89, 92, 94, chuteHealthScore];
-
-  const prediction = useTelemetryStore((state) => state.prediction);
 
   const handleToggleSimulationMode = async (mode: boolean) => {
     if (!activeChuteId) return;
