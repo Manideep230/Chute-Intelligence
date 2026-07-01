@@ -8,7 +8,7 @@ import {
   HttpStatus,
   ForbiddenException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -106,6 +106,9 @@ export class AdminController {
     summary:
       'DESTRUCTIVE: Wipe all operational data and re-seed baselines (Super Admin only)',
   })
+  @ApiResponse({ status: 200, description: 'Database reset and re-seeded successfully.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized — Missing or invalid token' })
+  @ApiResponse({ status: 403, description: 'Forbidden — Requires Super Admin role or safety check failure' })
   async resetDatabase(@Body() body: ResetDatabaseDto, @Req() req: any) {
     // Safety gate: must explicitly confirm
     if (!body.confirm || body.confirmPhrase !== 'RESET') {

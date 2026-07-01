@@ -48,6 +48,7 @@ export class AuthController {
     status: 201,
     description: 'OTP code generated and logged to console.',
   })
+  @ApiResponse({ status: 400, description: 'Bad Request — Invalid phone number' })
   async requestOtp(@Body() body: RequestOtpDto) {
     console.log(`[REQUEST_RECEIVED] [AuthController.requestOtp] Phone: ${body.phone}`);
     console.log(`[ENTER] [AuthController.requestOtp] Delegating to AuthService.`);
@@ -64,7 +65,9 @@ export class AuthController {
   @Post('verify-otp')
   @Throttle({ otp: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Verify OTP and obtain JWT access token' })
-  @ApiResponse({ status: 200, description: 'Successfully logged in.' })
+  @ApiResponse({ status: 200, description: 'Successfully logged in, tokens generated and HTTP-only cookie set.' })
+  @ApiResponse({ status: 400, description: 'Bad Request — Missing fields or validation error' })
+  @ApiResponse({ status: 401, description: 'Unauthorized — Invalid or expired OTP' })
   async verifyOtp(
     @Body() body: VerifyOtpDto,
     @Req() req: any,
@@ -98,6 +101,8 @@ export class AuthController {
   @Post('refresh')
   @ApiOperation({ summary: 'Rotate refresh token and issue new access token' })
   @ApiBody({ type: RefreshDto, required: false })
+  @ApiResponse({ status: 200, description: 'Access token successfully rotated.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized — Invalid or missing refresh token' })
   async refresh(
     @Req() req: any,
     @Res({ passthrough: true }) res: any,
@@ -129,6 +134,7 @@ export class AuthController {
   @Post('logout')
   @ApiOperation({ summary: 'Logout and revoke active refresh session' })
   @ApiBody({ type: LogoutDto, required: false })
+  @ApiResponse({ status: 200, description: 'Successfully logged out and session revoked.' })
   async logout(
     @Req() req: any,
     @Res({ passthrough: true }) res: any,
@@ -151,6 +157,8 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Logout from all active sessions' })
+  @ApiResponse({ status: 200, description: 'Logged out from all sessions successfully.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async logoutAll(@Req() req: any, @Res({ passthrough: true }) res: any) {
     await this.authService.logoutAll(req.user._id);
 
@@ -167,6 +175,7 @@ export class AuthController {
   @Post('register')
   @ApiOperation({ summary: 'Register a new enterprise user' })
   @ApiResponse({ status: 201, description: 'User successfully created.' })
+  @ApiResponse({ status: 400, description: 'Bad Request — Validation error or phone number already in use' })
   async register(@Body() body: RegisterDto) {
     const plants =
       body.assignedPlantIds || (body.plantId ? [body.plantId] : undefined);
@@ -179,6 +188,9 @@ export class AuthController {
   @ApiOperation({
     summary: 'Request phone number change (Dual OTP generation)',
   })
+  @ApiResponse({ status: 200, description: 'OTP codes generated for verification.' })
+  @ApiResponse({ status: 400, description: 'Bad Request — New phone number is already registered' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async requestPhoneChange(
     @Req() req: any,
     @Body() body: RequestPhoneChangeDto,
@@ -190,6 +202,9 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Verify phone number change with old and new OTPs' })
+  @ApiResponse({ status: 200, description: 'Phone number updated successfully.' })
+  @ApiResponse({ status: 400, description: 'Bad Request — Invalid or mismatched verification codes' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async verifyPhoneChange(@Req() req: any, @Body() body: VerifyPhoneChangeDto) {
     return this.authService.verifyPhoneChange(
       req.user._id,
@@ -202,6 +217,8 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Retrieve authenticated user profile' })
+  @ApiResponse({ status: 200, description: 'User profile retrieved successfully.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getProfile(@Req() req: any) {
     return this.authService.getProfile(req.user._id);
   }
@@ -210,6 +227,9 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update profile details (name, profile picture)' })
+  @ApiResponse({ status: 200, description: 'Profile updated successfully.' })
+  @ApiResponse({ status: 400, description: 'Bad Request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updateProfile(@Req() req: any, @Body() body: UpdateProfileDto) {
     return this.authService.updateProfile(req.user._id, body);
   }
@@ -218,7 +238,11 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Super Admin', 'Admin')
   @ApiBearerAuth()
+  @ApiTags('Super Admin Operations')
   @ApiOperation({ summary: 'List all users (Super Admin or Admin)' })
+  @ApiResponse({ status: 200, description: 'List of users retrieved.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden — Insufficient role' })
   async getAllUsers(@Req() req: any) {
     return this.authService.getAllUsers(req.user);
   }
@@ -227,7 +251,13 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Super Admin', 'Admin')
   @ApiBearerAuth()
+  @ApiTags('Super Admin Operations')
   @ApiOperation({ summary: 'Update user role' })
+  @ApiResponse({ status: 200, description: 'User role updated successfully.' })
+  @ApiResponse({ status: 400, description: 'Bad Request — Invalid role or assignment' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden — Insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async updateUserRole(
     @Req() req: any,
     @Param('id') id: string,
@@ -240,10 +270,15 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Super Admin', 'Admin', 'Manager')
   @ApiBearerAuth()
+  @ApiTags('Super Admin Operations')
   @ApiOperation({
     summary:
       'Create a new user (Super Admin/Admin creates any role; Manager can create Worker only)',
   })
+  @ApiResponse({ status: 201, description: 'User created successfully.' })
+  @ApiResponse({ status: 400, description: 'Bad Request — Phone already registered or Managers creating non-workers' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden — Insufficient permissions' })
   async registerUserByAdmin(@Req() req: any, @Body() body: RegisterDto) {
     // Managers can only create Workers
     if (req.user.role === 'Manager' && body.role !== 'Worker') {
@@ -264,7 +299,12 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Super Admin', 'Admin')
   @ApiBearerAuth()
+  @ApiTags('Super Admin Operations')
   @ApiOperation({ summary: 'Toggle user active status' })
+  @ApiResponse({ status: 200, description: 'User active status toggled.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden — Cannot toggle self or higher privilege users' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async toggleUserActive(@Req() req: any, @Param('id') id: string) {
     return this.authService.toggleUserActive(id, req.user);
   }
@@ -273,7 +313,12 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Super Admin', 'Admin')
   @ApiBearerAuth()
+  @ApiTags('Super Admin Operations')
   @ApiOperation({ summary: 'Delete user' })
+  @ApiResponse({ status: 200, description: 'User deleted successfully.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden — Cannot delete self or higher privilege users' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async deleteUser(@Req() req: any, @Param('id') id: string) {
     return this.authService.deleteUser(id, req.user);
   }
@@ -282,10 +327,14 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Super Admin')
   @ApiBearerAuth()
+  @ApiTags('Super Admin Operations')
   @ApiOperation({
     summary:
       'Migrate legacy users without NG IDs (idempotent, Super Admin only)',
   })
+  @ApiResponse({ status: 200, description: 'Migration run successfully.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden — Super Admin only' })
   async migrateNgIds(@Req() req: any) {
     return this.authService.migrateNgIds(req.user);
   }

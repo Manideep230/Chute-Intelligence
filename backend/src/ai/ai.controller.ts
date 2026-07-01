@@ -7,7 +7,7 @@ import {
   UseGuards,
   Res,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -28,6 +28,12 @@ export class AiController {
     summary:
       'Submit a message to the AI Copilot with live telemetry context (streams response)',
   })
+  @ApiResponse({
+    status: 200,
+    description: 'Message accepted, returns a text/event-stream SSE connection of chat response tokens.',
+  })
+  @ApiResponse({ status: 400, description: 'Bad Request — Invalid payload or validation error' })
+  @ApiResponse({ status: 401, description: 'Unauthorized — Missing or invalid access token' })
   async chat(@Body() body: AiChatDto, @Res() res: Response) {
     const history = body.history || [];
 
@@ -60,6 +66,12 @@ export class AiController {
     summary:
       'Retrieve component Remaining Useful Lives (RUL) and health risk analysis',
   })
+  @ApiResponse({
+    status: 200,
+    description: 'Calculated remaining useful lives and risk analytics retrieved.',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized — Missing or invalid access token' })
+  @ApiResponse({ status: 404, description: 'Chute not found' })
   async getPredictions(@Param('chuteId') chuteId: string) {
     return this.aiService.getComponentPredictions(chuteId);
   }

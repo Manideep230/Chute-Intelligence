@@ -2,6 +2,7 @@ import { Controller, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
+  ApiResponse,
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
@@ -32,6 +33,13 @@ export class ReportsController {
     required: false,
     description: 'ISO date string for period end',
   })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns operational report data in the requested format (JSON/CSV).',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized — Invalid or expired JWT token' })
+  @ApiResponse({ status: 403, description: 'Forbidden — Insufficient plant/chute permissions' })
+  @ApiResponse({ status: 404, description: 'Chute not found' })
   async getReport(
     @Param('chuteId') chuteId: string,
     @Query('format') format: string = 'json',

@@ -22,6 +22,7 @@ export class AppController {
 
   @Get()
   @ApiOperation({ summary: 'Default root hello endpoint' })
+  @ApiResponse({ status: 200, description: 'Service is healthy, returns hello message.' })
   getHello(): string {
     return this.appService.getHello();
   }
