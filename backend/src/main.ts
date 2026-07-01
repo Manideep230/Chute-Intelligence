@@ -10,10 +10,10 @@ dotenv.config({ path: envPath });
 
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { SanitizationInterceptor } from './common/interceptors/sanitization.interceptor';
+import { setupSwagger } from './swagger.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -49,18 +49,8 @@ async function bootstrap() {
     }),
   );
 
-  // Swagger Documentation Setup
-  const config = new DocumentBuilder()
-    .setTitle('Nigha Radar Industrial AI API')
-    .setDescription(
-      'Enterprise Chute Blockage Detection & Predictive Maintenance API Documentation',
-    )
-    .setVersion('1.0.0')
-    .addBearerAuth()
-    .build();
-
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  // Swagger Documentation (controlled by ENABLE_SWAGGER env var)
+  setupSwagger(app);
 
   const port = process.env.PORT || 5000; // backend runs on 5000
   await app.listen(port);
@@ -70,3 +60,4 @@ async function bootstrap() {
   );
 }
 bootstrap();
+

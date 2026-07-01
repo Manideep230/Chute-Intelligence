@@ -1,6 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './src/app.module';
+import { setupSwagger } from './src/swagger.config';
 
 // Use require statement inside function context to bypass top-level ESM conflicts
 const getExpressApp = () => {
@@ -19,10 +21,23 @@ const bootstrap = async () => {
   console.log(`[NEST_FACTORY_CREATE_COMPLETED] [${new Date().toISOString()}] NestFactory created app in ${Date.now() - startTime}ms.`);
   
   app.enableCors();
+
+  // Global Validation Pipe (match main.ts behaviour)
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+    }),
+  );
+
+  // Swagger Documentation (controlled by ENABLE_SWAGGER env var)
+  setupSwagger(app);
+
   await app.init();
   console.log(`[BOOTSTRAP_SUCCESS] [${new Date().toISOString()}] NestJS successfully initialized in ${Date.now() - startTime}ms.`);
   return server;
 };
+
 
 let appServer: any = null;
 let bootstrapError: any = null;
