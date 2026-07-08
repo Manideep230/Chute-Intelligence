@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import { DecisionEngineService, DecisionResult } from './decision-engine.service';
 import { AiPredictionService } from './ai-prediction.service';
 import {
@@ -109,7 +109,7 @@ export class BlastService {
       .lean()
       .exec();
 
-    const commandId = uuidv4();
+    const commandId = randomUUID();
 
     const commandDoc = await this.commandModel.create({
       commandId,
@@ -233,7 +233,7 @@ export class BlastService {
     const solenoidNumbers =
       selection?.solenoidNumbers ?? (decision.solenoidNumber ? [decision.solenoidNumber] : [1, 2]);
 
-    const commandId = uuidv4();
+    const commandId = randomUUID();
     const config = await this.predictionService.getConfig(chuteId);
 
     // Persist command record
