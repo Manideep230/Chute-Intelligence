@@ -2225,7 +2225,7 @@ export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: 
   const hubOnline = health?.isOnline ?? true;
   const isDark    = theme === 'dark';
 
-  const [viewMode, setViewMode] = useState<'operator' | 'transparent' | 'cutaway' | 'maintenance'>('operator');
+  const [viewMode] = useState<'operator' | 'transparent' | 'cutaway' | 'maintenance'>('cutaway');
   const [canvasKey, setCanvasKey] = useState(0);
   const controlsRef = useRef<any>(null);
   const [isContextLost, setIsContextLost] = useState(false);
@@ -2775,17 +2775,8 @@ export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: 
         </div>
       )}
 
-      {/* View mode + demo button toolbar — top right */}
+      {/* Demo button toolbar — top right */}
       <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, display: 'flex', gap: '3px', background: btnBg, backdropFilter: 'blur(6px)', padding: '4px 5px', borderRadius: '6px', border: `1px solid ${overlayBorder}`, fontFamily: "'Inter',sans-serif" }}>
-        {(['operator', 'transparent', 'cutaway', 'maintenance'] as const).map((mode) => (
-          <button key={mode} onClick={() => setViewMode(mode)} style={{ padding: '3px 8px', fontFamily: 'inherit', fontSize: '10px', fontWeight: 600, textTransform: 'capitalize', background: viewMode === mode ? btnActive : 'transparent', color: viewMode === mode ? '#fff' : btnInactive, border: 'none', borderRadius: '4px', cursor: 'pointer', transition: 'all 150ms ease', letterSpacing: '0.2px' }}>
-            {mode}
-          </button>
-        ))}
-
-        {/* Separator */}
-        <div style={{ width: '1px', background: overlayBorder, margin: '2px 2px' }} />
-
         {/* Phase 10: Client Demo button */}
         <button
           onClick={demo.running ? stopDemo : handleStartDemo}
