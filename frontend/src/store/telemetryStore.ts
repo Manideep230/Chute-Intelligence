@@ -99,6 +99,7 @@ export interface TelemetryState {
   liveTemperature: number;
   liveHumidity: number;
   unreadAlerts: number;
+  commandsList: any[];
 
   // ── Dev/Demo-only state (never transmitted over MQTT) ────────────────────
   devBlockages: DevBlockage[];
@@ -130,6 +131,7 @@ export interface TelemetryState {
   clearDevBlockages: () => void;
   updateDevBlockage: (id: string, changes: Partial<DevBlockage>) => void;
   setDemoKpis: (kpis: DemoKpis | null) => void;
+  fetchCommandsList: (chuteId: string | null, token: string | null) => Promise<void>;
 }
 
 export const useTelemetryStore = create<TelemetryState>((set) => ({
@@ -162,6 +164,7 @@ export const useTelemetryStore = create<TelemetryState>((set) => ({
   unreadAlerts: 0,
   devBlockages: [],
   demoKpis: null,
+  commandsList: [],
 
   setActiveChute: (chuteId) => set({ activeChuteId: chuteId }),
   setActiveBlasterNumber: (num) => set({ activeBlasterNumber: num }),
@@ -299,4 +302,21 @@ export const useTelemetryStore = create<TelemetryState>((set) => ({
 
   // ── DEMO KPI ACTIONS ──────────────────────────────────────────────────────
   setDemoKpis: (kpis) => set({ demoKpis: kpis }),
+
+  fetchCommandsList: async (chuteId, token) => {
+    if (!chuteId || !token) return;
+    try {
+      const res = await fetch(`/_/backend/hardware/commands/${chuteId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          set({ commandsList: data });
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch commands list in store', err);
+    }
+  },
 }));

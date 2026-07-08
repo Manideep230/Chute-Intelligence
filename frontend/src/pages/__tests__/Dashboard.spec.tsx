@@ -45,6 +45,8 @@ vi.mock('../../store/telemetryStore', () => ({
     updateCompressorData: vi.fn(),
     updateStatus: vi.fn(),
     addAlert: vi.fn(),
+    commandsList: [],
+    fetchCommandsList: vi.fn().mockImplementation(() => Promise.resolve()),
   }),
 }));
 

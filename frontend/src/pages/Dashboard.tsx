@@ -56,6 +56,7 @@ export const Dashboard: React.FC = () => {
     compressor,
     liveTemperature,
     liveHumidity,
+    fetchCommandsList,
   } = useTelemetryStore();
 
   // 2. Extracted Data Fetching, MQTT, Tab state, and Telemetry Hooks
@@ -178,10 +179,25 @@ export const Dashboard: React.FC = () => {
   const triggerPullToRefresh = useCallback(() => {
     setIsRefreshing(true);
     refreshChuteDetail();
+    fetchCommandsList(activeChuteId, token);
     setTimeout(() => {
       setIsRefreshing(false);
     }, 1200);
-  }, [refreshChuteDetail]);
+  }, [refreshChuteDetail, fetchCommandsList, activeChuteId, token]);
+
+  // Global command polling at 30 seconds interval as fallback
+  useEffect(() => {
+    if (!activeChuteId || !token) return;
+    
+    // Initial load
+    fetchCommandsList(activeChuteId, token);
+    
+    const timer = setInterval(() => {
+      fetchCommandsList(activeChuteId, token);
+    }, 30000);
+
+    return () => clearInterval(timer);
+  }, [activeChuteId, token, fetchCommandsList]);
 
   const handleThemeToggle = () => {
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'));

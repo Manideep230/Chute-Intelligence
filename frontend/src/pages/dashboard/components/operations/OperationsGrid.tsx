@@ -78,30 +78,13 @@ export const OperationsGrid: React.FC<OperationsGridProps> = ({
     liveTemperature,
     liveHumidity,
     prediction,
+    commandsList,
+    fetchCommandsList,
   } = useTelemetryStore();
 
   const [injZone, setInjZone] = useState<number>(1);
   const [injDistance, setInjDistance] = useState<number>(0.55);
   const [injPosition, setInjPosition] = useState('');
-  const [commandsList, setCommandsList] = useState<any[]>([]);
-
-  React.useEffect(() => {
-    if (!activeChuteId) return;
-    const fetchCommands = () => {
-      fetch(`/_/backend/hardware/commands/${activeChuteId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) setCommandsList(data);
-        })
-        .catch(err => console.warn('Failed to fetch commands', err));
-    };
-
-    fetchCommands();
-    const interval = setInterval(fetchCommands, 3000);
-    return () => clearInterval(interval);
-  }, [activeChuteId, token]);
 
   const handleRetryCommand = async (commandId: string) => {
     try {
@@ -117,14 +100,8 @@ export const OperationsGrid: React.FC<OperationsGridProps> = ({
         const errData = await res.json();
         throw new Error(errData.message || 'Retry failed');
       }
-      // Refresh list
-      fetch(`/_/backend/hardware/commands/${activeChuteId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-        .then(r => r.json())
-        .then(data => {
-          if (Array.isArray(data)) setCommandsList(data);
-        });
+      // Refresh list in store
+      fetchCommandsList(activeChuteId, token);
     } catch (err: any) {
       alert(`Retry failed: ${err.message}`);
     }

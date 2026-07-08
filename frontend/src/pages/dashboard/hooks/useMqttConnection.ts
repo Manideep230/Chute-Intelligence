@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import mqtt from 'mqtt';
 import { useTelemetryStore } from '../../../store/telemetryStore';
+import { useAuthStore } from '../../../store/authStore';
 
 /**
  * Manages the full MQTT WebSocket lifecycle: connect, subscribe to all
@@ -43,6 +44,7 @@ export function useMqttConnection(activeChuteId: string | null) {
       client.subscribe(`nigha/chute/${activeChuteId}/alert`);
       client.subscribe(`nigha/chute/${activeChuteId}/health`);
       client.subscribe(`nigha/chute/${activeChuteId}/location`);
+      client.subscribe(`nigha/chute/${activeChuteId}/command`);
       client.subscribe(`nigha/chute/${activeChuteId}/blast`);
       client.subscribe(`nigha/chute/${activeChuteId}/localization`);
       client.subscribe(`nigha/chute/${activeChuteId}/prediction`);
@@ -50,6 +52,10 @@ export function useMqttConnection(activeChuteId: string | null) {
       // Hierarchical topics (wildcard for this chute - e.g. domain/+/NGCH.../+/+/+/+/+/+)
       // Subscribe to any hierarchical messages for matching chutes
       client.subscribe(`domain/+/+/+/+/+/+/+/+`);
+
+      // Refresh command list on reconnect/connect
+      const token = useAuthStore.getState().token;
+      useTelemetryStore.getState().fetchCommandsList(activeChuteId, token);
     });
 
     client.on('message', (topic, payload) => {
@@ -133,6 +139,9 @@ export function useMqttConnection(activeChuteId: string | null) {
               setActiveSolenoidValves([]);
             }, 2500);
           }
+          // Refresh commands list live when command status updates
+          const currentToken = useAuthStore.getState().token;
+          useTelemetryStore.getState().fetchCommandsList(activeChuteId, currentToken);
           break;
         default:
           break;
