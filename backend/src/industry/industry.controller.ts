@@ -16,7 +16,7 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { IndustryService } from './industry.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/roles.guard';
@@ -181,6 +181,7 @@ export class IndustryController {
   }
 
   @Get('chutes/:id/detail')
+  @SkipThrottle()
   @ApiOperation({
     summary:
       'Get detailed chute operational telemetry, health, and configuration',
@@ -421,6 +422,7 @@ export class IndustryController {
   }
 
   @Get('chutes/:id/kpis')
+  @SkipThrottle()
   @ApiOperation({
     summary:
       'Get full chute intelligence KPI set: uptime, blockage minutes, blast effectiveness, air consumption',

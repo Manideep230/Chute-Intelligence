@@ -14,7 +14,7 @@ import {
   ApiResponse,
   ApiParam,
 } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { MultiTenantGuard } from '../auth/multi-tenant.guard';
 import { HardwareService } from './hardware.service';
@@ -110,6 +110,7 @@ export class HardwareController {
   // ── Status & Health Queries ─────────────────────────────────────────────
 
   @Get('status/:hubId')
+  @SkipThrottle()
   @ApiOperation({ summary: 'Get current status of a specific hub' })
   @ApiParam({ name: 'hubId', description: '16-digit hub hardware ID' })
   @ApiResponse({ status: 200, description: 'Hub status retrieved' })
@@ -119,6 +120,7 @@ export class HardwareController {
   }
 
   @Get('health/:hubId')
+  @SkipThrottle()
   @ApiOperation({ summary: 'Get health report for a specific hub' })
   @ApiParam({ name: 'hubId', description: '16-digit hub hardware ID' })
   @ApiResponse({ status: 200, description: 'Hub health retrieved' })
@@ -127,6 +129,7 @@ export class HardwareController {
   }
 
   @Get('telemetry/:hubId')
+  @SkipThrottle()
   @ApiOperation({ summary: 'Get recent telemetry for a hub' })
   @ApiParam({ name: 'hubId', description: '16-digit hub hardware ID' })
   @ApiResponse({ status: 200, description: 'Telemetry data retrieved' })
@@ -135,6 +138,7 @@ export class HardwareController {
   }
 
   @Get('commands/:chuteId')
+  @SkipThrottle()
   @ApiOperation({ summary: 'Get command history for a chute' })
   @ApiParam({ name: 'chuteId', description: 'Chute ObjectId' })
   @ApiResponse({ status: 200, description: 'Command history retrieved' })
@@ -143,6 +147,7 @@ export class HardwareController {
   }
 
   @Get('topology/:chuteId')
+  @SkipThrottle()
   @ApiOperation({ summary: 'Get full hardware topology for a chute' })
   @ApiParam({ name: 'chuteId', description: 'Chute ObjectId' })
   @ApiResponse({ status: 200, description: 'Full topology (cells, hubs, radars, SABs, solenoids, compressor)' })
@@ -153,6 +158,7 @@ export class HardwareController {
   // ── Configuration ───────────────────────────────────────────────────────
 
   @Get('config/:chuteId')
+  @SkipThrottle()
   @ApiOperation({ summary: 'Get SAB configuration for a chute (or global defaults)' })
   @ApiParam({ name: 'chuteId', description: 'Chute ObjectId (or "global" for defaults)' })
   @ApiResponse({ status: 200, description: 'Configuration retrieved' })
