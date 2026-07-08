@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, Moon, Mic } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 import { getThemeColors, getStatusColor, getStatusBg } from '../constants';
 
 interface HeaderBarProps {
@@ -12,11 +12,6 @@ interface HeaderBarProps {
   unreadAlerts: number;
   clearUnreadAlerts: () => void;
   setExpandedTile: (tile: string | null) => void;
-  voice: {
-    isSupported: boolean;
-    isListening: boolean;
-    toggleListening: () => void;
-  };
   theme: 'dark' | 'light';
   handleThemeToggle: () => void;
 }
@@ -31,7 +26,6 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
   unreadAlerts,
   clearUnreadAlerts,
   setExpandedTile,
-  voice,
   theme,
   handleThemeToggle,
 }) => {
@@ -120,33 +114,6 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
             🔔 {unreadAlerts} alerts
           </button>
         )}
-
-        {/* Voice Command Widget — Real Web Speech API */}
-        <button
-          onClick={() => {
-            if (!voice.isSupported) {
-              return;
-            }
-            voice.toggleListening();
-          }}
-          className={`glass-card ${voice.isListening ? 'voice-mic-active' : ''}`}
-          style={{
-            background: voice.isListening ? 'rgba(167, 139, 250, 0.15)' : 'var(--card-bg)',
-            borderColor: voice.isListening ? PURPLE : 'var(--border)',
-            color: voice.isListening ? PURPLE : 'var(--text-secondary)',
-            padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: '8px', position: 'relative',
-          }}
-          title={voice.isListening ? '🎤 Listening… (say a command)' : voice.isSupported ? 'Enable Voice Command (Hey Nigha)' : 'Voice not supported in this browser'}
-        >
-          <Mic size={16} />
-          {voice.isListening && (
-            <span style={{
-              position: 'absolute', top: -4, right: -4, width: 8, height: 8,
-              borderRadius: '50%', background: PURPLE, animation: 'pulseGlow 1s infinite',
-            }} />
-          )}
-        </button>
 
         <button
           onClick={handleThemeToggle}

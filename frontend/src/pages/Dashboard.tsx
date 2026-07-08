@@ -2,14 +2,12 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useTelemetryStore } from '../store/telemetryStore';
 import { useRoleAccess } from '../hooks/useRoleAccess';
-import { useVoiceCommand } from '../hooks/useVoiceCommand';
 import { CircularProgress } from '@mui/material';
 import {
   Activity, Wrench, FileText, Settings, Users, Inbox, AlertTriangle, BarChart3
 } from 'lucide-react';
 
 import IncidentCenter from './IncidentCenter';
-import AICopilot from '../components/AICopilot/AICopilot';
 
 // Extracted modules
 import { getThemeColors } from './dashboard/constants';
@@ -231,35 +229,6 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  // Voice command hook called at the top level
-  const voice = useVoiceCommand({
-    lang: 'en-US',
-    onCommand: (cmd, _raw) => {
-      if (cmd === 'health') setExpandedTile('health');
-      else if (cmd === 'maintenance') setActiveTab('maintenance');
-      else if (cmd === 'timeline') { setExpandedTile('timeline'); clearUnreadAlerts(); }
-      else if (cmd === 'report') setReportModalOpen(true);
-      else if (cmd === 'switch-chute') {
-        const idx = chutes.findIndex(c => c._id === activeChuteId);
-        const next = chutes[(idx + 1) % chutes.length];
-        if (next) setActiveChute(next._id);
-      }
-      else if (cmd === 'ai') setExpandedTile('ai');
-      else if (cmd === 'profile') setActiveTab('profile');
-      else if (cmd === 'theme-dark') setTheme('dark');
-      else if (cmd === 'theme-light') setTheme('light');
-      else if (cmd === 'logout') logout();
-      else if (cmd === 'incidents') setActiveTab('incidents');
-      else if (cmd === 'throughput') setExpandedTile('throughput');
-      else if (cmd === 'environment') setExpandedTile('environment');
-      else if (cmd === 'confirm-blast') {
-        const valveNo = parseInt(_raw);
-        if (!isNaN(valveNo) && roleAccess.canTriggerManualBlast) {
-          handleManualValveBlast(valveNo);
-        }
-      }
-    },
-  });
 
   // Navigation Items
   const navItems = useMemo(() => [
@@ -351,7 +320,6 @@ export const Dashboard: React.FC = () => {
             unreadAlerts={unreadAlerts}
             clearUnreadAlerts={clearUnreadAlerts}
             setExpandedTile={setExpandedTile}
-            voice={voice}
             theme={theme}
             handleThemeToggle={handleThemeToggle}
           />
@@ -456,8 +424,6 @@ export const Dashboard: React.FC = () => {
         theme={theme}
       />
 
-      {/* AI Floating Copilot Panel */}
-      <AICopilot activeChuteId={activeChuteId} />
 
       {/* Detail drawer for drill-down metric inspections */}
       {expandedTile && (
