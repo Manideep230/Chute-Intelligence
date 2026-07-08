@@ -51,15 +51,11 @@ export const Dashboard: React.FC = () => {
     setActiveChute,
     clearUnreadAlerts,
     applyLocalization,
-    setActiveBlasterNumber,
-    setActiveSolenoidValves,
-    updateStatus,
     radars,
     solenoids,
     compressor,
     liveTemperature,
     liveHumidity,
-    simulationMode,
   } = useTelemetryStore();
 
   // 2. Extracted Data Fetching, MQTT, Tab state, and Telemetry Hooks
@@ -205,29 +201,7 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  const handleManualValveBlast = async (valveNumber: number) => {
-    if (!activeChuteId) return;
-    try {
-      const res = await fetch(`/_/backend/industry/chutes/${activeChuteId}/blast`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ valveNumber }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
 
-      if (simulationMode) {
-        setActiveBlasterNumber(Math.ceil(valveNumber / 2));
-        setActiveSolenoidValves([valveNumber]);
-      }
-      updateStatus('Blasting');
-    } catch (err: any) {
-      alert(`Manual blast failed: ${err.message}`);
-    }
-  };
 
 
   // Navigation Items

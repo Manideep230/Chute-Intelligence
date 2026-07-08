@@ -32,7 +32,6 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
   const colors = getThemeColors(theme);
   const GREEN = colors.GREEN;
   const RED = colors.RED;
-  const PURPLE = colors.PURPLE;
 
   const statusColor = getStatusColor(chuteStatus, colors);
   const statusBg = getStatusBg(chuteStatus);
