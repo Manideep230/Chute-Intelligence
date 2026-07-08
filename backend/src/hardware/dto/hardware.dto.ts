@@ -170,3 +170,18 @@ export class UpdateConfigDto {
   @Min(0)
   minPressurePsi?: number;
 }
+
+export class SetRadarTelemetryDto {
+  @ApiProperty({ description: 'Chute ObjectId', example: '6650a1b2c3d4e5f6a7b8c9d0' })
+  @IsString()
+  chuteId: string;
+
+  @ApiProperty({
+    description: 'Array of 4 radar distance readings in metres (one for each zone 1-4)',
+    example: [0.8, 3.5, 3.5, 3.5],
+    type: [Number],
+  })
+  @IsArray()
+  @ArrayNotEmpty()
+  radarValues: number[];
+}

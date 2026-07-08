@@ -32,6 +32,7 @@ import { MqttService } from '../mqtt/mqtt.service';
 import {
   RegisterDeviceDto,
   UpdateConfigDto,
+  SetRadarTelemetryDto,
 } from './dto/hardware.dto';
 
 /**
@@ -381,5 +382,35 @@ export class HardwareService {
     }).save();
 
     return config;
+  }
+
+  async setRadarTelemetry(chuteId: string, radarValues: number[]) {
+    const oId = new Types.ObjectId(chuteId);
+    const chute = await this.chuteModel.findById(oId).exec();
+    if (!chute) throw new NotFoundException('Chute not found');
+
+    const config = await this.getConfig(chuteId);
+    const autoBlastEnabled = (config as any).autoBlastEnabled ?? false;
+
+    // Default threshold from generic profile
+    const threshold = 1.1;
+
+    for (let i = 0; i < radarValues.length; i++) {
+      const zone = i + 1;
+      const distance = radarValues[i];
+
+      // Publish to MQTT to simulate physical sensor telemetry
+      this.mqttService.publish(`nigha/chute/${chuteId}/radar`, {
+        zone,
+        distance,
+        buildupDetected: distance < threshold,
+      });
+    }
+
+    return {
+      success: true,
+      message: `Manually set radar telemetry for ${radarValues.length} zones. Auto-blast status: ${autoBlastEnabled ? 'ENABLED (system will attempt auto-clearing)' : 'DISABLED (enable via SAB configuration first)'}`,
+      radarValues,
+    };
   }
 }

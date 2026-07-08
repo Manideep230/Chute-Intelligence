@@ -25,6 +25,7 @@ import {
   RegisterDeviceDto,
   RetryCommandDto,
   UpdateConfigDto,
+  SetRadarTelemetryDto,
 } from './dto/hardware.dto';
 
 @ApiTags('Hardware Control')
@@ -166,5 +167,12 @@ export class HardwareController {
   @ApiResponse({ status: 201, description: 'Configuration updated' })
   async updateConfig(@Body() dto: UpdateConfigDto) {
     return this.hardwareService.updateConfig(dto);
+  }
+
+  @Post('telemetry/radar')
+  @ApiOperation({ summary: 'Manually set radar sensor readings for a chute (simulates blockages)' })
+  @ApiResponse({ status: 201, description: 'Radar values updated, autonomous decision engine triggered' })
+  async setRadarTelemetry(@Body() dto: SetRadarTelemetryDto) {
+    return this.hardwareService.setRadarTelemetry(dto.chuteId, dto.radarValues);
   }
 }
