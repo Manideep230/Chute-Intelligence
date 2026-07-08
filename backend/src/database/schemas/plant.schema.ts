@@ -204,6 +204,10 @@ ChuteSchema.pre(
         'BlastOutcome',
         'ChuteUptimeLog',
         'CalibrationLog',
+        'Cell',
+        'Hub',
+        'Command',
+        'SabConfiguration',
       ];
 
       for (const mName of models) {
@@ -240,6 +244,10 @@ ChuteSchema.pre('findOneAndDelete', async function (this: any) {
         'BlastOutcome',
         'ChuteUptimeLog',
         'CalibrationLog',
+        'Cell',
+        'Hub',
+        'Command',
+        'SabConfiguration',
       ];
 
       for (const mName of models) {

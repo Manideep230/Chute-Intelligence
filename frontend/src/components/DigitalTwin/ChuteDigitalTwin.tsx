@@ -2352,7 +2352,7 @@ export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: 
 
   // Effect to intercept store 'Blasting' status (fired from dashboard panels) and run local 3D blast
   useEffect(() => {
-    if (chuteStatus === 'Blasting' && !blast.active && simulationMode) {
+    if (chuteStatus === 'Blasting' && !blast.active) {
       // Use activeBlasterNumber if set, otherwise fallback to recommended nearest group
       const blasterNo = activeBlasterNumber || nearestSolenoidGroup || 1;
       const blasterPos = BLASTER_WORLD_POSITIONS[blasterNo];
@@ -2380,24 +2380,26 @@ export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: 
       const partialHit  = !!partialId;
 
       fireBlast(blasterNo, blasterPos, hitBlockage, partialHit, () => {
-        if (hitId) {
-          updateDevBlockage(hitId, { fragmenting: true });
-          setTimeout(() => {
-            updateDevBlockage(hitId!, { cleared: true, fragmenting: false });
-            const remaining = devBlockages.filter(b => b.id !== hitId && !b.cleared);
-            if (remaining.length === 0) {
-              updateStatus('Normal');
+        if (simulationMode) {
+          if (hitId) {
+            updateDevBlockage(hitId, { fragmenting: true });
+            setTimeout(() => {
+              updateDevBlockage(hitId!, { cleared: true, fragmenting: false });
+              const remaining = devBlockages.filter(b => b.id !== hitId && !b.cleared);
+              if (remaining.length === 0) {
+                updateStatus('Normal');
+              }
+              setDemoKpis({ blastSuccess: true, blockCleared: true, effectiveness: 90 + Math.round(Math.random() * 10) });
+            }, 1400);
+          } else if (partialId) {
+            const blk = devBlockages.find(b => b.id === partialId);
+            if (blk) {
+              updateDevBlockage(partialId, { normalizedT: blk.normalizedT + 0.04 });
             }
-            setDemoKpis({ blastSuccess: true, blockCleared: true, effectiveness: 90 + Math.round(Math.random() * 10) });
-          }, 1400);
-        } else if (partialId) {
-          const blk = devBlockages.find(b => b.id === partialId);
-          if (blk) {
-            updateDevBlockage(partialId, { normalizedT: blk.normalizedT + 0.04 });
+            updateStatus('Normal');
+          } else {
+            updateStatus('Normal');
           }
-          updateStatus('Normal');
-        } else {
-          updateStatus('Normal');
         }
 
         // Reset active blaster/valves in the store after blast completes

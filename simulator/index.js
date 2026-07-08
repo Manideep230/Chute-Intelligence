@@ -225,7 +225,7 @@ function connectMqtt() {
         // Legacy: solenoidValves array or fallback to group pair
         valves = data.solenoidValves || [group * 2 - 1, group * 2];
       }
-      executeBlast(group, valves);
+      executeBlast(group, valves, data.commandId);
 
     } else if (data.action === 'override_radar') {
       // Manual override: sets a specific zone to a specific distance
@@ -267,7 +267,7 @@ function connectMqtt() {
   });
 }
 
-function executeBlast(blasterNumber, solenoidValves) {
+function executeBlast(blasterNumber, solenoidValves, commandId) {
   console.log(`>>> EXECUTING BLAST SEQUENCE: Blaster/Group #${blasterNumber}, Valves: ${solenoidValves.join(', ')}`);
 
   // Compressor protection cutoff: minimum 80 PSI required
@@ -275,6 +275,7 @@ function executeBlast(blasterNumber, solenoidValves) {
     console.log(`!!! BLAST ABORTED: Insufficient pressure (${compressorPressure.toFixed(0)} PSI < 80 PSI threshold)`);
 
     mqttClient.publish(`nigha/chute/${chuteId}/blast`, JSON.stringify({
+      commandId,
       blasterNumber,
       solenoidValves,
       success: false,
@@ -289,6 +290,7 @@ function executeBlast(blasterNumber, solenoidValves) {
 
   // 2. Publish Success blast event
   mqttClient.publish(`nigha/chute/${chuteId}/blast`, JSON.stringify({
+    commandId,
     blasterNumber,
     solenoidValves,
     success: true

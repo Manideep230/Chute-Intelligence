@@ -4,10 +4,11 @@ import { getThemeColors } from '../constants';
 
 interface AuditTabProps {
   auditLogs: any[];
+  loading: boolean;
   theme: 'dark' | 'light';
 }
 
-export const AuditTab: React.FC<AuditTabProps> = React.memo(({ auditLogs, theme }) => {
+export const AuditTab: React.FC<AuditTabProps> = React.memo(({ auditLogs, loading, theme }) => {
   const colors = getThemeColors(theme);
   const BLUE = colors.BLUE;
 
@@ -25,8 +26,7 @@ export const AuditTab: React.FC<AuditTabProps> = React.memo(({ auditLogs, theme 
               </TableRow>
             </TableHead>
             <TableBody>
-              {auditLogs.length === 0 ? (
-                // Skeleton rows shown while audit logs are loading
+              {loading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <TableRow key={`skel-${i}`}>
                     {[120, 160, 280].map((w, j) => (
@@ -36,6 +36,12 @@ export const AuditTab: React.FC<AuditTabProps> = React.memo(({ auditLogs, theme 
                     ))}
                   </TableRow>
                 ))
+              ) : auditLogs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)', borderBottom: 'none' }}>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>No audit logs recorded yet</div>
+                  </TableCell>
+                </TableRow>
               ) : (
                 auditLogs.map((log: any) => (
                   <TableRow key={log._id}>

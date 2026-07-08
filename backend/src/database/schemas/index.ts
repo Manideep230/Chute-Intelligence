@@ -15,3 +15,7 @@ export * from './chute-uptime-log.schema';
 export * from './incident.schema';
 export * from './calibration-log.schema';
 export * from './session.schema';
+export * from './cell.schema';
+export * from './hub.schema';
+export * from './command.schema';
+export * from './sab-configuration.schema';

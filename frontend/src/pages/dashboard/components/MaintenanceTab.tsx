@@ -4,6 +4,7 @@ import { useTelemetryStore } from '../../../store/telemetryStore';
 
 interface MaintenanceTabProps {
   maintenanceTickets: any[];
+  loading: boolean;
   roleAccess: any;
   token: string | null;
   activeChuteId: string | null;
@@ -13,6 +14,7 @@ interface MaintenanceTabProps {
 
 export const MaintenanceTab: React.FC<MaintenanceTabProps> = React.memo(({
   maintenanceTickets,
+  loading,
   roleAccess,
   token,
   activeChuteId,
@@ -109,7 +111,7 @@ export const MaintenanceTab: React.FC<MaintenanceTabProps> = React.memo(({
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {maintenanceTickets.length === 0 && (
+          {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="glass-panel" style={{ padding: '14px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -122,7 +124,13 @@ export const MaintenanceTab: React.FC<MaintenanceTabProps> = React.memo(({
                 </div>
               ))}
             </div>
-          )}
+          ) : maintenanceTickets.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: 40, marginBottom: 8 }}>✅</div>
+              <div style={{ fontWeight: 600, fontSize: 14 }}>No maintenance tickets</div>
+              <div style={{ fontSize: 12, marginTop: 4 }}>All systems operational — no open work orders</div>
+            </div>
+          ) : null}
           {maintenanceTickets.map((ticket: any) => (
             <div key={ticket._id} className="glass-panel" style={{ padding: '14px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ width: '3px', alignSelf: 'stretch', borderRadius: '2px', background: ticket.status === 'Resolved' ? 'var(--text-muted)' : ticket.description?.startsWith('AUTO:') ? RED : AMBER, flexShrink: 0 }} />

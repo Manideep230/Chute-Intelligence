@@ -83,6 +83,52 @@ export const OperationsGrid: React.FC<OperationsGridProps> = ({
   const [injZone, setInjZone] = useState<number>(1);
   const [injDistance, setInjDistance] = useState<number>(0.55);
   const [injPosition, setInjPosition] = useState('');
+  const [commandsList, setCommandsList] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (!activeChuteId) return;
+    const fetchCommands = () => {
+      fetch(`/_/backend/hardware/commands/${activeChuteId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setCommandsList(data);
+        })
+        .catch(err => console.warn('Failed to fetch commands', err));
+    };
+
+    fetchCommands();
+    const interval = setInterval(fetchCommands, 3000);
+    return () => clearInterval(interval);
+  }, [activeChuteId, token]);
+
+  const handleRetryCommand = async (commandId: string) => {
+    try {
+      const res = await fetch(`/_/backend/hardware/retry-command`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ commandId }),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || 'Retry failed');
+      }
+      // Refresh list
+      fetch(`/_/backend/hardware/commands/${activeChuteId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (Array.isArray(data)) setCommandsList(data);
+        });
+    } catch (err: any) {
+      alert(`Retry failed: ${err.message}`);
+    }
+  };
 
   const touchStartRef = useRef<{ x: number, y: number } | null>(null);
 
@@ -561,7 +607,7 @@ export const OperationsGrid: React.FC<OperationsGridProps> = ({
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
                 <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Confidence Score</span>
                 <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  94.8%
+                  {prediction && (prediction as any).confidence ? `${(prediction as any).confidence}%` : '94.8%'}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
@@ -963,6 +1009,102 @@ export const OperationsGrid: React.FC<OperationsGridProps> = ({
         <div className="glass-panel bento-span-2 bento-tile" style={{ padding: '16px' }}>
           <div style={{ flex: 1, minHeight: '170px' }}>
             <TelemetryChart isDark={isDark} />
+          </div>
+        </div>
+
+        {/* LIVE HARDWARE COMMAND QUEUE PANEL (2cols × 1row) */}
+        <div className="glass-panel bento-span-2 bento-tile" style={{ padding: '16px', minHeight: '202px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '10px' }}>
+            <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.8px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+              Live Hardware Command Queue
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="shimmer-badge" style={{ borderColor: 'var(--border)' }}>
+                <span className="ai-active-dot" style={{ background: GREEN }} />
+                ACTIVE LISTENER
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', overflowY: 'auto', maxHeight: '140px' }}>
+            {commandsList.length === 0 ? (
+              <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', padding: '24px 0', textAlign: 'center', width: '100%' }}>
+                No hardware commands logged yet.
+              </div>
+            ) : (
+              commandsList.slice(0, 5).map((cmd) => {
+                let statusColor = 'var(--text-muted)';
+                if (cmd.status === 'COMPLETED') statusColor = GREEN;
+                else if (cmd.status === 'FAILED' || cmd.status === 'TIMEOUT') statusColor = RED;
+                else if (cmd.status === 'PUBLISHED' || cmd.status === 'RECEIVED') statusColor = AMBER;
+                else if (cmd.status === 'EXECUTING') statusColor = BLUE;
+
+                return (
+                  <div
+                    key={cmd.commandId}
+                    className="glass-card"
+                    style={{
+                      padding: '8px 12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      fontSize: '11px',
+                      borderLeft: `3px solid ${statusColor}`,
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
+                          {cmd.action.replace('_', ' ')}
+                        </span>
+                        <span style={{
+                          fontSize: '8px',
+                          padding: '1px 4px',
+                          borderRadius: '3px',
+                          background: cmd.triggerSource === 'ai' ? 'rgba(168,85,247,0.15)' : 'rgba(0,212,255,0.15)',
+                          color: cmd.triggerSource === 'ai' ? PURPLE : BLUE,
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                        }}>
+                          {cmd.triggerSource}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '8.5px', color: 'var(--text-muted)', marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
+                        ID: {cmd.commandId.substring(0, 8)}... · {new Date(cmd.createdAt).toLocaleTimeString()}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 800,
+                        fontSize: '9.5px',
+                        color: statusColor,
+                      }}>
+                        {cmd.status}
+                      </span>
+                      {(cmd.status === 'FAILED' || cmd.status === 'TIMEOUT') && (cmd.retryCount || 0) < (cmd.maxRetries || 3) && (
+                        <button
+                          onClick={() => handleRetryCommand(cmd.commandId)}
+                          style={{
+                            background: 'rgba(0, 212, 255, 0.1)',
+                            color: BLUE,
+                            border: `1px solid ${BLUE}40`,
+                            borderRadius: '4px',
+                            padding: '3px 8px',
+                            fontSize: '8.5px',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          RETRY
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 

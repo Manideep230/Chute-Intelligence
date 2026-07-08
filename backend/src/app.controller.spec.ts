@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { MqttService } from './mqtt/mqtt.service';
 
 describe('AppController', () => {
   let appController: AppController;
@@ -14,6 +15,12 @@ describe('AppController', () => {
           useValue: {
             getHello: () =>
               'Nigha Radar Enterprise Industrial AI API is running.',
+          },
+        },
+        {
+          provide: MqttService,
+          useValue: {
+            publish: () => {},
           },
         },
       ],

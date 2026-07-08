@@ -58,6 +58,7 @@ export function setupSwagger(app: INestApplication): void {
     .addTag('Incidents', 'Incident reporting, escalation, and resolution workflows')
     .addTag('Reports', 'PDF/CSV report generation for chute analytics')
     .addTag('AI Chute Intelligence', 'AI copilot chat and predictive analytics endpoints')
+    .addTag('Hardware Control', 'Smart Air Blaster (SAB) commands, solenoid control, device registration, and autonomous configuration')
     .addTag('System', 'Health checks, MQTT webhook ingestion, and WebSocket connectivity')
     .build();
 

@@ -43,7 +43,16 @@ import {
   ChuteUptimeLogDocument,
   MaintenanceTicket,
   MaintenanceTicketDocument,
+  Cell,
+  CellDocument,
+  Hub,
+  HubDocument,
+  Command,
+  CommandDocument,
+  SabConfiguration,
+  SabConfigurationDocument,
 } from '../database/schemas';
+import { BlastService } from '../ai/blast.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Material-type sensitivity profiles for blockage prediction.
@@ -132,6 +141,12 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     private chuteUptimeLogModel: Model<ChuteUptimeLogDocument>,
     @InjectModel(MaintenanceTicket.name)
     private maintenanceTicketModel: Model<MaintenanceTicketDocument>,
+    @InjectModel(Cell.name) private cellModel: Model<CellDocument>,
+    @InjectModel(Hub.name) private hubModel: Model<HubDocument>,
+    @InjectModel(Command.name) private commandModel: Model<CommandDocument>,
+    @InjectModel(SabConfiguration.name)
+    private configModel: Model<SabConfigurationDocument>,
+    private readonly blastService: BlastService,
   ) {
     console.log(`[ENTER] [MqttService] Constructor started.`);
   }
@@ -182,12 +197,12 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
 
     this.client.on('connect', () => {
       this.logger.log('Successfully connected to EMQX MQTT broker.');
-      this.client.subscribe('nigha/chute/+/+', { qos: 1 }, (err) => {
+      this.client.subscribe(['nigha/chute/+/+', 'domain/+/+/+/+/+/+/+/+/+'], { qos: 1 }, (err) => {
         if (err) {
           this.logger.error(`Subscription error: ${err.message}`);
         } else {
           this.logger.log(
-            'Subscribed to all chute telemetry topics (nigha/chute/+/+)',
+            'Subscribed to legacy (nigha/chute/+/+) and hierarchical (domain/+/+/+/+/+/+/+/+/+) topics',
           );
         }
       });
@@ -250,64 +265,176 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
   }
 
   public async handleIncomingMessage(topic: string, payloadStr: string) {
-    // Topic formats:
-    // nigha/chute/{id}/radar
-    // nigha/chute/{id}/temperature
-    // nigha/chute/{id}/humidity
-    // nigha/chute/{id}/compressor
-    // nigha/chute/{id}/alert
-    // nigha/chute/{id}/health
-    // nigha/chute/{id}/location
-    // nigha/chute/{id}/blast
     const parts = topic.split('/');
-    if (parts.length < 4 || parts[0] !== 'nigha' || parts[1] !== 'chute') {
+    if (parts.length === 0) return;
+
+    let data: any;
+    try {
+      data = JSON.parse(payloadStr);
+    } catch (e) {
+      this.logger.error(`Failed to parse payload on topic ${topic}: ${e.message}`);
       return;
     }
 
-    const chuteId = parts[2];
-    const type = parts[3];
+    if (parts[0] === 'nigha' && parts[1] === 'chute' && parts.length >= 4) {
+      const chuteId = parts[2];
+      const type = parts[3];
 
-    if (!Types.ObjectId.isValid(chuteId)) {
-      return; // Invalid MongoDB ID
+      if (!Types.ObjectId.isValid(chuteId)) return;
+
+      const oChuteId = new Types.ObjectId(chuteId);
+      const chute = await this.chuteModel.findById(oChuteId).exec();
+      if (!chute) {
+        this.logger.warn(`Telemetry received for non-existent chute: ${chuteId}`);
+        return;
+      }
+
+      await this.routeLegacyMessage(type, oChuteId, data);
+    } else if (parts[0] === 'domain' && parts.length >= 9) {
+      const plantId = parts[1];
+      const hubId = parts[2];
+      const passName = parts[3];
+      const passKey = parts[4];
+      const simNumber = parts[5];
+      const sabId = parts[6];
+      const solenoidValve = parts[7];
+      const action = parts[8];
+
+      // Authenticate Hub
+      const hub = await this.hubModel.findOne({ hubId }).exec();
+      if (!hub) {
+        this.logger.warn(`Unknown Hub ID received on hierarchical topic: ${hubId}`);
+        return;
+      }
+
+      if (hub.passName !== passName || hub.passKey !== passKey) {
+        this.logger.warn(`Authentication failed for Hub: ${hubId}`);
+        return;
+      }
+
+      // Update Hub Heartbeat
+      await this.hubModel.findByIdAndUpdate(hub._id, {
+        lastHeartbeat: new Date(),
+        status: 'Online',
+      }).exec();
+
+      await this.routeHierarchicalMessage(action, hub, data, sabId, solenoidValve);
     }
+  }
 
-    const oChuteId = new Types.ObjectId(chuteId);
-    const data = JSON.parse(payloadStr);
-
-    // Verify chute exists
-    const chute = await this.chuteModel.findById(oChuteId).exec();
-    if (!chute) {
-      this.logger.warn(`Telemetry received for non-existent chute: ${chuteId}`);
-      return;
-    }
-
+  private async routeLegacyMessage(type: string, chuteId: Types.ObjectId, data: any) {
     switch (type) {
       case 'radar':
-        await this.handleRadarData(oChuteId, data);
+        await this.handleRadarData(chuteId, data);
         break;
       case 'temperature':
-        await this.handleTemperatureData(oChuteId, data);
+        await this.handleTemperatureData(chuteId, data);
         break;
       case 'humidity':
-        await this.handleHumidityData(oChuteId, data);
+        await this.handleHumidityData(chuteId, data);
         break;
       case 'compressor':
-        await this.handleCompressorData(oChuteId, data);
+        await this.handleCompressorData(chuteId, data);
         break;
       case 'alert':
-        await this.handleAlertData(oChuteId, data);
+        await this.handleAlertData(chuteId, data);
         break;
       case 'health':
-        await this.handleHealthData(oChuteId, data);
+        await this.handleHealthData(chuteId, data);
         break;
       case 'location':
-        await this.handleLocationData(oChuteId, data);
+        await this.handleLocationData(chuteId, data);
         break;
-      case 'blast': // Custom trigger event published when a blast is executed
-        await this.handleBlastEvent(oChuteId, data);
+      case 'blast':
+        await this.handleBlastEvent(chuteId, data);
         break;
       default:
-        this.logger.warn(`Unknown telemetry topic type: ${type}`);
+        this.logger.warn(`Unknown legacy topic type: ${type}`);
+    }
+  }
+
+  private async routeHierarchicalMessage(
+    action: string,
+    hub: HubDocument,
+    data: any,
+    sabId: string,
+    solenoidValve: string,
+  ) {
+    const chuteId = hub.chuteId;
+
+    switch (action) {
+      case 'telemetry':
+        // Telemetry payload can contain radar, compressor, or env values
+        if (data.radarValues) {
+          // Process radar values sequentially to trigger prediction
+          for (let i = 0; i < data.radarValues.length; i++) {
+            await this.handleRadarData(chuteId, {
+              zone: i + 1,
+              distance: data.radarValues[i],
+              buildupDetected: data.radarValues[i] < 1.0,
+            });
+          }
+        }
+        if (data.temperature !== undefined) {
+          await this.handleTemperatureData(chuteId, { value: data.temperature });
+        }
+        if (data.humidity !== undefined) {
+          await this.handleHumidityData(chuteId, { value: data.humidity });
+        }
+        if (data.pressure !== undefined || data.efficiency !== undefined) {
+          await this.handleCompressorData(chuteId, data);
+        }
+        if (data.latitude !== undefined && data.longitude !== undefined) {
+          await this.handleLocationData(chuteId, data);
+        }
+        break;
+
+      case 'heartbeat':
+        // Heartbeat is already processed (lastHeartbeat and status updated in caller)
+        break;
+
+      case 'status':
+      case 'health':
+        await this.handleHealthData(chuteId, data);
+        break;
+
+      case 'logs':
+        await new this.auditLogModel({
+          action: 'Hub Logs',
+          details: `Hub ${hub.hubId} logs: ${JSON.stringify(data)}`,
+        }).save();
+        break;
+
+      case 'warning':
+      case 'fault':
+        await this.handleAlertData(chuteId, {
+          severity: data.severity || 'Medium',
+          source: 'System',
+          message: data.message || `Hub Fault reported: ${JSON.stringify(data)}`,
+          isResolved: false,
+        });
+        break;
+
+      case 'blast':
+      case 'command':
+        // Intercept Command ACK/Completion
+        if (data.commandId) {
+          const status = data.status || (data.success ? 'COMPLETED' : 'FAILED');
+          const result = data.result || { success: data.success, reason: data.reason };
+          await this.blastService.updateCommandStatus(data.commandId, status, result);
+        }
+
+        // Process Blast Event
+        await this.handleBlastEvent(chuteId, {
+          blasterNumber: data.blasterNumber || parseInt(sabId.replace('SAB', ''), 10) || 1,
+          solenoidValves: data.solenoidValves || [parseInt(solenoidValve.replace('SV', ''), 10) || 1],
+          success: data.success !== false,
+          triggerMode: data.triggerMode || 'auto',
+        });
+        break;
+
+      default:
+        this.logger.warn(`Unknown action: ${action} on hierarchical topic for Hub: ${hub.hubId}`);
     }
   }
 
@@ -1253,6 +1380,33 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
       )
       .exec();
 
+    // ── 9.5 Publish AI Prediction to MQTT ───────────────────────────────────
+    const predictionPayload = {
+      blockageProbability: blockageProb,
+      compressorFailureProbability: compFailProb,
+      solenoidWearProbability: solenoidWearProb,
+      airBlasterMaintenanceProbability: blasterMaintProb,
+      recommendedActions,
+      buildupRatePerMin: Math.round(avgBuildupRate * 1000) / 1000,
+      overallTrend,
+      lastBlastEffectivenessScore,
+      consecutiveFailedBlasts,
+      uptimePercent24h,
+      blockageMinutesToday,
+      airLitresToday,
+      timestamp: new Date().toISOString(),
+    };
+
+    this.publish(`nigha/chute/${chuteId}/prediction`, predictionPayload);
+
+    const activeHub = await this.hubModel.findOne({ chuteId }).exec();
+    if (activeHub) {
+      this.publish(
+        `domain/${activeHub.plantId || 'PLANT01'}/${activeHub.hubId}/${activeHub.passName}/${activeHub.passKey}/${activeHub.simNumber || '9999999999'}/SAB1/SV1/prediction`,
+        predictionPayload,
+      );
+    }
+
     // ── 10. Auto-maintenance ticket creation from health thresholds ────────
     await this.autoCreateMaintenanceTickets(
       chuteId,
@@ -1260,6 +1414,25 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
       solenoids,
       compressor,
     );
+
+    // ── 11. Run autonomous decision engine ──────────────────────────────────
+    try {
+      const { decision, command } = await this.blastService.evaluateAndPrepare(chuteId);
+      if (command) {
+        this.publish(`nigha/chute/${chuteId}/command`, {
+          action: 'blast',
+          commandId: command.commandId,
+          blasterNumber: command.sabNumber,
+          solenoidValves: command.solenoidNumbers,
+          blastDurationMs: command.blastDurationMs,
+          requiredPressure: command.requiredPressurePsi,
+          timestamp: command.timestamp,
+        });
+        await this.blastService.updateCommandStatus(command.commandId, 'PUBLISHED');
+      }
+    } catch (err) {
+      this.logger.error(`Error running autonomous blast engine: ${err.message}`);
+    }
   }
 
   // ───────────────────────────────────────────────────────────────────────────

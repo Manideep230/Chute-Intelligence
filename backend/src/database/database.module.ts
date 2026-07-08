@@ -53,6 +53,14 @@ import {
   CalibrationLogSchema,
   Session,
   SessionSchema,
+  Cell,
+  CellSchema,
+  Hub,
+  HubSchema,
+  Command,
+  CommandSchema,
+  SabConfiguration,
+  SabConfigurationSchema,
 } from './schemas';
 
 const models = [
@@ -82,6 +90,10 @@ const models = [
   { name: Incident.name, schema: IncidentSchema },
   { name: CalibrationLog.name, schema: CalibrationLogSchema },
   { name: Session.name, schema: SessionSchema },
+  { name: Cell.name, schema: CellSchema },
+  { name: Hub.name, schema: HubSchema },
+  { name: Command.name, schema: CommandSchema },
+  { name: SabConfiguration.name, schema: SabConfigurationSchema },
 ];
 
 @Module({

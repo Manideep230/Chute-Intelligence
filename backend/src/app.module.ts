@@ -11,6 +11,7 @@ import { DatabaseModule } from './database/database.module';
 import { IncidentsModule } from './incidents/incidents.module';
 import { ReportsModule } from './reports/reports.module';
 import { AiModule } from './ai/ai.module';
+import { HardwareModule } from './hardware/hardware.module';
 
 const mongoUri =
   process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/nigha-chute';
@@ -47,6 +48,7 @@ const mongoUri =
     IncidentsModule,
     ReportsModule,
     AiModule,
+    HardwareModule,
   ],
   controllers: [AppController],
   providers: [

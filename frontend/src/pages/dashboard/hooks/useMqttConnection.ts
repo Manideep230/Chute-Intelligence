@@ -35,6 +35,7 @@ export function useMqttConnection(activeChuteId: string | null) {
 
     client.on('connect', () => {
       setMqttConnected(true);
+      // Legacy topics
       client.subscribe(`nigha/chute/${activeChuteId}/radar`);
       client.subscribe(`nigha/chute/${activeChuteId}/temperature`);
       client.subscribe(`nigha/chute/${activeChuteId}/humidity`);
@@ -44,15 +45,45 @@ export function useMqttConnection(activeChuteId: string | null) {
       client.subscribe(`nigha/chute/${activeChuteId}/location`);
       client.subscribe(`nigha/chute/${activeChuteId}/blast`);
       client.subscribe(`nigha/chute/${activeChuteId}/localization`);
+      client.subscribe(`nigha/chute/${activeChuteId}/prediction`);
+
+      // Hierarchical topics (wildcard for this chute - e.g. domain/+/NGCH.../+/+/+/+/+/+)
+      // Subscribe to any hierarchical messages for matching chutes
+      client.subscribe(`domain/+/+/+/+/+/+/+/+`);
     });
 
     client.on('message', (topic, payload) => {
-      const data = JSON.parse(payload.toString());
-      const type = topic.split('/')[3];
+      let data: any;
+      try {
+        data = JSON.parse(payload.toString());
+      } catch (e) {
+        console.warn('[MQTT JSON Error]', e);
+        return;
+      }
+
+      const parts = topic.split('/');
+      let type = parts[3];
+
+      if (parts[0] === 'domain') {
+        type = parts[8]; // domain/{plantId}/{chute16DigitId}/{passName}/{passKey}/{simNumber}/{sabId}/{solenoidValve}/{action}
+      }
 
       switch (type) {
         case 'radar':
           updateRadarData(data.zone, data.distance, data.buildupDetected);
+          break;
+        case 'telemetry':
+          if (data.radarValues) {
+            data.radarValues.forEach((dist: number, i: number) => {
+              updateRadarData(i + 1, dist, dist < 1.0);
+            });
+          }
+          if (data.temperature !== undefined) updateEnvironmental('temperature', data.temperature);
+          if (data.humidity !== undefined) updateEnvironmental('humidity', data.humidity);
+          if (data.pressure !== undefined) updateCompressorData({ pressure: data.pressure });
+          if (data.latitude !== undefined && data.longitude !== undefined) {
+            updateLocation(data.latitude, data.longitude);
+          }
           break;
         case 'temperature':
           updateEnvironmental('temperature', data.value);
@@ -67,6 +98,8 @@ export function useMqttConnection(activeChuteId: string | null) {
           updateLocation(data.latitude, data.longitude);
           break;
         case 'alert':
+        case 'warning':
+        case 'fault':
           if (!data.isResolved) addAlert(data);
           break;
         case 'localization':
@@ -79,11 +112,21 @@ export function useMqttConnection(activeChuteId: string | null) {
             status: data.status,
           });
           break;
+        case 'prediction':
+          useTelemetryStore.getState().updateAiPredictionData({
+            blockageProbability: data.blockageProbability ?? 0,
+            compressorFailureProbability: data.compressorFailureProbability ?? 0,
+            solenoidWearProbability: data.solenoidWearProbability ?? 0,
+            airBlasterMaintenanceProbability: data.airBlasterMaintenanceProbability ?? 0,
+            recommendedActions: data.recommendedActions || [],
+          });
+          break;
         case 'blast':
-          if (data.success) {
+        case 'command':
+          if (data.success || data.status === 'COMPLETED' || data.status === 'EXECUTING') {
             updateStatus('Blasting');
-            setActiveBlasterNumber(data.blasterNumber);
-            setActiveSolenoidValves(data.solenoidValves || []);
+            setActiveBlasterNumber(data.blasterNumber || data.sabNumber || 1);
+            setActiveSolenoidValves(data.solenoidValves || data.solenoidNumbers || []);
 
             setTimeout(() => {
               setActiveBlasterNumber(null);

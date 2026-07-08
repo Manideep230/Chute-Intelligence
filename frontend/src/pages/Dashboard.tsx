@@ -80,7 +80,9 @@ export const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<DashboardTab>('dashboard');
   const {
     auditLogs,
+    auditLoading,
     maintenanceTickets,
+    maintenanceLoading,
     allUsers,
     assignments,
     loadAllUsers,
@@ -384,6 +386,7 @@ export const Dashboard: React.FC = () => {
           {activeTab === 'maintenance' && roleAccess.isManager && (
             <MaintenanceTab
               maintenanceTickets={maintenanceTickets}
+              loading={maintenanceLoading}
               roleAccess={roleAccess}
               token={token}
               activeChuteId={activeChuteId}
@@ -393,7 +396,7 @@ export const Dashboard: React.FC = () => {
           )}
 
           {activeTab === 'audit' && roleAccess.canViewAuditLogs && (
-            <AuditTab auditLogs={auditLogs} theme={theme} />
+            <AuditTab auditLogs={auditLogs} loading={auditLoading} theme={theme} />
           )}
 
           {activeTab === 'users' && roleAccess.canViewUserManagement && (
