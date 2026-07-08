@@ -565,7 +565,7 @@ export const OperationsGrid: React.FC<OperationsGridProps> = ({
           </div>
         </div>
 
-        {/* 4. AI INSIGHT TILE (2cols × 1row) */}
+        {/* 4. PREDICTIVE DIAGNOSTICS TILE (2cols × 1row) */}
         <div
           className="bento-tile bento-span-2 ai-pulse-tile"
           style={{ background: 'var(--panel-bg)' }}
@@ -573,12 +573,12 @@ export const OperationsGrid: React.FC<OperationsGridProps> = ({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <div className="ai-active-dot" />
-              <span className="shimmer-badge">AI-INFERENCE</span>
+              <span className="shimmer-badge">PREDICTIVE</span>
               <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)' }}>Flow Analytics</span>
             </div>
 
             <button
-              onClick={() => setExpandedTile('ai')}
+              onClick={() => setExpandedTile('predictive')}
               style={{
                 background: 'none', color: PURPLE, fontSize: '9.5px', fontWeight: 700, border: 'none', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: '2px'

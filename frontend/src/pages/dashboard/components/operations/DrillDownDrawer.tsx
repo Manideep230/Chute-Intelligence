@@ -195,7 +195,7 @@ export const DrillDownDrawer: React.FC<DrillDownDrawerProps> = React.memo(({
               </>
             )}
 
-            {expandedTile === 'ai' && (
+            {expandedTile === 'predictive' && (
               <React.Suspense fallback={
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                   <CircularProgress color="inherit" size={30} />
