@@ -4,7 +4,7 @@ import { useTelemetryStore } from '../store/telemetryStore';
 import { useRoleAccess } from '../hooks/useRoleAccess';
 import { CircularProgress } from '@mui/material';
 import {
-  Activity, Wrench, FileText, Settings, Users, Inbox, AlertTriangle, BarChart3
+  Activity, Wrench, FileText, Settings, Users, Inbox, AlertTriangle, BarChart3, Shield, Radio, Film, Bell
 } from 'lucide-react';
 
 import IncidentCenter from './IncidentCenter';
@@ -27,6 +27,15 @@ import { ProfileTab } from './dashboard/components/ProfileTab';
 import { RegistryTab } from './dashboard/components/RegistryTab';
 import { OperationsGrid } from './dashboard/components/operations/OperationsGrid';
 import { DrillDownDrawer } from './dashboard/components/operations/DrillDownDrawer';
+
+// New Enterprise Tabs
+import { FleetOperationsTab } from './dashboard/components/FleetOperationsTab';
+import { DevicesTab } from './dashboard/components/DevicesTab';
+import { CommandCenterTab } from './dashboard/components/CommandCenterTab';
+import { HistoricalReplayTab } from './dashboard/components/HistoricalReplayTab';
+import { AlarmManagementTab } from './dashboard/components/AlarmManagementTab';
+import { MqttMonitorTab } from './dashboard/components/MqttMonitorTab';
+import { ReportingTab } from './dashboard/components/ReportingTab';
 
 // Extracted modals
 import { ReportModal } from './dashboard/components/modals/ReportModal';
@@ -223,6 +232,13 @@ export const Dashboard: React.FC = () => {
   // Navigation Items
   const navItems = useMemo(() => [
     { id: 'dashboard', label: 'Operations', icon: <Activity size={16} /> },
+    { id: 'fleet-ops', label: 'Fleet Operations', icon: <Shield size={16} /> },
+    { id: 'devices', label: 'Device Inventory', icon: <Wrench size={16} /> },
+    { id: 'command-center', label: 'Command Center', icon: <Activity size={16} /> },
+    { id: 'historical-replay', label: 'Historical Replay', icon: <Film size={16} /> },
+    { id: 'alarm-mgmt', label: 'Alarms Control', icon: <Bell size={16} /> },
+    { id: 'mqtt-monitor', label: 'MQTT Monitor', icon: <Radio size={16} /> },
+    { id: 'enterprise-reports', label: 'Reports Center', icon: <FileText size={16} /> },
     ...(roleAccess.isManager ? [{ id: 'maintenance', label: 'Maintenance', icon: <Wrench size={16} /> }] : []),
     ...(roleAccess.canManageIncidents ? [{ id: 'incidents', label: 'Incidents', icon: <AlertTriangle size={16} /> }] : []),
     ...(roleAccess.canViewAuditLogs ? [{ id: 'audit', label: 'Audit Logs', icon: <FileText size={16} /> }] : []),
@@ -401,6 +417,34 @@ export const Dashboard: React.FC = () => {
             }>
               <FleetAnalytics />
             </React.Suspense>
+          )}
+
+          {activeTab === 'fleet-ops' && (
+            <FleetOperationsTab plantsList={plantsList} chutes={chutes} />
+          )}
+
+          {activeTab === 'devices' && (
+            <DevicesTab activeChuteId={activeChuteId || ''} token={token || ''} />
+          )}
+
+          {activeTab === 'command-center' && (
+            <CommandCenterTab activeChuteId={activeChuteId || ''} token={token || ''} />
+          )}
+
+          {activeTab === 'historical-replay' && (
+            <HistoricalReplayTab activeChuteId={activeChuteId || ''} token={token || ''} />
+          )}
+
+          {activeTab === 'alarm-mgmt' && (
+            <AlarmManagementTab activeChuteId={activeChuteId || ''} token={token || ''} />
+          )}
+
+          {activeTab === 'mqtt-monitor' && (
+            <MqttMonitorTab token={token || ''} />
+          )}
+
+          {activeTab === 'enterprise-reports' && (
+            <ReportingTab activeChuteId={activeChuteId || ''} token={token || ''} />
           )}
         </div>
       </div>

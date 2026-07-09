@@ -13,10 +13,10 @@ export class Alert {
   @Prop({ type: Types.ObjectId, ref: 'Chute', required: true })
   chuteId: Types.ObjectId;
 
-  @Prop({ required: true, enum: ['Low', 'Medium', 'High', 'Critical'] })
+  @Prop({ required: true, enum: ['Low', 'Medium', 'High', 'Critical', 'Info', 'Warning', 'Emergency', 'INFO', 'WARNING', 'CRITICAL', 'EMERGENCY'] })
   severity: string;
 
-  @Prop({ required: true, enum: ['Radar', 'Compressor', 'Solenoid', 'System'] })
+  @Prop({ required: true, enum: ['Radar', 'Compressor', 'Solenoid', 'System', 'Hub'] })
   source: string;
 
   @Prop({ required: true })
@@ -27,6 +27,21 @@ export class Alert {
 
   @Prop({ default: null })
   resolvedAt: Date;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null })
+  resolvedBy: Types.ObjectId | null;
+
+  @Prop({ required: true, default: false })
+  isSilenced: boolean;
+
+  @Prop({ default: null })
+  silencedAt: Date;
+
+  @Prop({ default: null })
+  acknowledgedAt: Date;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null })
+  acknowledgedBy: Types.ObjectId | null;
 }
 
 export const AlertSchema = SchemaFactory.createForClass(Alert);

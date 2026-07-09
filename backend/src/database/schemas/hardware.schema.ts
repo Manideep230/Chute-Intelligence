@@ -38,6 +38,9 @@ export class Radar {
   @Prop({ default: 0 })
   buildupRatePerMin: number;
 
+  @Prop({ required: true, default: 100 })
+  healthScore: number;
+
   /**
    * Trend direction based on last N scans:
    * 'rising' | 'stable' | 'clearing'
@@ -55,6 +58,30 @@ export class Radar {
    */
   @Prop({ default: null })
   calibrationBaselineDistance: number;
+
+  @Prop({ default: '1.0.0' })
+  firmware: string;
+
+  @Prop({ default: '1.0' })
+  hardwareVersion: string;
+
+  @Prop({ default: null })
+  macAddress: string;
+
+  @Prop({ default: null })
+  serialNumber: string;
+
+  @Prop({ default: Date.now })
+  installationDate: Date;
+
+  @Prop({ default: Date.now })
+  lastMaintenance: Date;
+
+  @Prop({ default: null })
+  lastHeartbeat: Date;
+
+  @Prop({ default: 'Offline' })
+  onlineStatus: string;
 }
 
 export const RadarSchema = SchemaFactory.createForClass(Radar);
@@ -79,6 +106,30 @@ export class AirBlaster {
 
   @Prop({ default: Date.now })
   lastBlastTime: Date;
+
+  @Prop({ default: '1.0.0' })
+  firmware: string;
+
+  @Prop({ default: '1.0' })
+  hardwareVersion: string;
+
+  @Prop({ default: null })
+  macAddress: string;
+
+  @Prop({ default: null })
+  serialNumber: string;
+
+  @Prop({ default: Date.now })
+  installationDate: Date;
+
+  @Prop({ default: Date.now })
+  lastMaintenance: Date;
+
+  @Prop({ default: null })
+  lastHeartbeat: Date;
+
+  @Prop({ default: 'Offline' })
+  onlineStatus: string;
 }
 
 export const AirBlasterSchema = SchemaFactory.createForClass(AirBlaster);
@@ -103,6 +154,30 @@ export class Solenoid {
 
   @Prop({ default: Date.now })
   lastCycleTime: Date;
+
+  @Prop({ default: '1.0.0' })
+  firmware: string;
+
+  @Prop({ default: '1.0' })
+  hardwareVersion: string;
+
+  @Prop({ default: null })
+  macAddress: string;
+
+  @Prop({ default: null })
+  serialNumber: string;
+
+  @Prop({ default: Date.now })
+  installationDate: Date;
+
+  @Prop({ default: Date.now })
+  lastMaintenance: Date;
+
+  @Prop({ default: null })
+  lastHeartbeat: Date;
+
+  @Prop({ default: 'Offline' })
+  onlineStatus: string;
 }
 
 export const SolenoidSchema = SchemaFactory.createForClass(Solenoid);
@@ -154,6 +229,30 @@ export class Compressor {
    */
   @Prop({ required: true, default: 0 })
   airLitresPerBlastAvg: number;
+
+  @Prop({ default: '1.0.0' })
+  firmware: string;
+
+  @Prop({ default: '1.0' })
+  hardwareVersion: string;
+
+  @Prop({ default: null })
+  macAddress: string;
+
+  @Prop({ default: null })
+  serialNumber: string;
+
+  @Prop({ default: Date.now })
+  installationDate: Date;
+
+  @Prop({ default: Date.now })
+  lastMaintenance: Date;
+
+  @Prop({ default: null })
+  lastHeartbeat: Date;
+
+  @Prop({ default: 'Offline' })
+  onlineStatus: string;
 }
 
 export const CompressorSchema = SchemaFactory.createForClass(Compressor);

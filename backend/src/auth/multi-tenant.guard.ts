@@ -53,13 +53,17 @@ export class MultiTenantGuard implements CanActivate {
     const checkPlantAccess = async (plantIdStr: string): Promise<boolean> => {
       if (!plantIdStr) return false;
       const plantId = new Types.ObjectId(plantIdStr);
-      if (user.role === 'Admin') {
+      const role = user.role;
+      const isAdminRole = role === 'Admin';
+      const isManagerRole = ['Manager', 'Plant Manager', 'Maintenance Manager', 'Supervisor'].includes(role);
+
+      if (isAdminRole) {
         const hasAccess = (user.assignedPlantIds || []).some(
           (id: any) => id.toString() === plantIdStr,
         );
         return hasAccess;
       }
-      if (user.role === 'Manager') {
+      if (isManagerRole) {
         const assignment = await this.assignmentModel
           .findOne({
             userId: user._id,
@@ -68,15 +72,19 @@ export class MultiTenantGuard implements CanActivate {
           .exec();
         return !!assignment;
       }
-      return false; // Workers don't have plant level access
+      return false; // Workers/Operators/Technicians/Viewers don't have plant level access
     };
 
     // Helper to check chute access
     const checkChuteAccess = async (chuteIdStr: string): Promise<boolean> => {
       if (!chuteIdStr) return false;
       const chuteId = new Types.ObjectId(chuteIdStr);
+      const role = user.role;
+      const isAdminRole = role === 'Admin';
+      const isManagerRole = ['Manager', 'Plant Manager', 'Maintenance Manager', 'Supervisor'].includes(role);
+      const isWorkerRole = ['Worker', 'Operator', 'Technician', 'Viewer'].includes(role);
 
-      if (user.role === 'Admin') {
+      if (isAdminRole) {
         const chute = await this.chuteModel.findById(chuteId).exec();
         if (!chute) return false;
         return (user.assignedPlantIds || []).some(
@@ -84,7 +92,7 @@ export class MultiTenantGuard implements CanActivate {
         );
       }
 
-      if (user.role === 'Manager' || user.role === 'Worker') {
+      if (isManagerRole || isWorkerRole) {
         const assignment = await this.assignmentModel
           .findOne({
             userId: user._id,
@@ -94,7 +102,7 @@ export class MultiTenantGuard implements CanActivate {
         if (assignment) return true;
 
         // If manager has assignment to the plant of this chute, allow access
-        if (user.role === 'Manager') {
+        if (isManagerRole) {
           const chute = await this.chuteModel.findById(chuteId).exec();
           if (chute) {
             const plantAssignment = await this.assignmentModel

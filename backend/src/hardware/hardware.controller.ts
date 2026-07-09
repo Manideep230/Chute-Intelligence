@@ -6,6 +6,7 @@ import {
   Param,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -13,6 +14,7 @@ import {
   ApiBearerAuth,
   ApiResponse,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -180,5 +182,68 @@ export class HardwareController {
   @ApiResponse({ status: 201, description: 'Radar values updated, autonomous decision engine triggered' })
   async setRadarTelemetry(@Body() dto: SetRadarTelemetryDto) {
     return this.hardwareService.setRadarTelemetry(dto.chuteId, dto.radarValues);
+  }
+
+  @Get('inventory')
+  @SkipThrottle()
+  @ApiOperation({ summary: 'Get complete device inventory' })
+  @ApiResponse({ status: 200, description: 'Device inventory retrieved' })
+  async getInventory() {
+    return this.hardwareService.getInventory();
+  }
+
+  @Get('predictive-maintenance/:chuteId')
+  @SkipThrottle()
+  @ApiOperation({ summary: 'Get predictive maintenance report for all component types on a chute' })
+  @ApiParam({ name: 'chuteId', description: 'Chute ObjectId' })
+  @ApiResponse({ status: 200, description: 'Predictive health report retrieved' })
+  async getPredictiveMaintenance(@Param('chuteId') chuteId: string) {
+    return this.hardwareService.getPredictiveMaintenance(chuteId);
+  }
+
+  @Get('replay/:chuteId')
+  @SkipThrottle()
+  @ApiOperation({ summary: 'Get historical timeline events for playback replay' })
+  @ApiParam({ name: 'chuteId', description: 'Chute ObjectId' })
+  @ApiQuery({ name: 'start', description: 'Start Date ISO string' })
+  @ApiQuery({ name: 'end', description: 'End Date ISO string' })
+  @ApiResponse({ status: 200, description: 'Replay timeline data retrieved' })
+  async getReplayTimeline(
+    @Param('chuteId') chuteId: string,
+    @Query('start') start: string,
+    @Query('end') end: string,
+  ) {
+    return this.hardwareService.getReplayTimeline(chuteId, start, end);
+  }
+
+  @Post('commands/:commandId/replay')
+  @ApiOperation({ summary: 'Re-dispatches a command as a new command execution' })
+  @ApiParam({ name: 'commandId', description: 'The old command ID' })
+  @ApiResponse({ status: 201, description: 'Command replayed successfully' })
+  async replayCommand(@Param('commandId') commandId: string, @Req() req: any) {
+    return this.hardwareService.replayCommand(commandId, req.user?._id?.toString());
+  }
+
+  @Post('commands/:commandId/cancel')
+  @ApiOperation({ summary: 'Cancel a command queue entry' })
+  @ApiParam({ name: 'commandId', description: 'The command ID to cancel' })
+  @ApiResponse({ status: 200, description: 'Command cancelled' })
+  async cancelCommand(@Param('commandId') commandId: string) {
+    return this.hardwareService.cancelCommand(commandId);
+  }
+
+  @Post('commands/execute')
+  @ApiOperation({ summary: 'Manually execute an arbitrary command' })
+  @ApiResponse({ status: 201, description: 'Command published' })
+  async manualExecute(
+    @Body() body: { chuteId: string; action: string; payload: any },
+    @Req() req: any,
+  ) {
+    return this.hardwareService.manualExecute(
+      body.chuteId,
+      body.action,
+      body.payload,
+      req.user?._id?.toString(),
+    );
   }
 }

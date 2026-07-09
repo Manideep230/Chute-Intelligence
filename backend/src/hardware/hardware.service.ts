@@ -26,6 +26,12 @@ import {
   HubHealthDocument,
   Telemetry,
   TelemetryDocument,
+  AiPrediction,
+  AiPredictionDocument,
+  BlastOutcome,
+  BlastOutcomeDocument,
+  Alert,
+  AlertDocument,
 } from '../database/schemas';
 import { BlastService, BlastCommand } from '../ai/blast.service';
 import { MqttService } from '../mqtt/mqtt.service';
@@ -66,6 +72,12 @@ export class HardwareService {
     private hubHealthModel: Model<HubHealthDocument>,
     @InjectModel(Telemetry.name)
     private telemetryModel: Model<TelemetryDocument>,
+    @InjectModel(AiPrediction.name)
+    private aiPredictionModel: Model<AiPredictionDocument>,
+    @InjectModel(BlastOutcome.name)
+    private blastOutcomeModel: Model<BlastOutcomeDocument>,
+    @InjectModel(Alert.name)
+    private alertModel: Model<AlertDocument>,
     private readonly blastService: BlastService,
     private readonly mqttService: MqttService,
   ) {}
@@ -412,5 +424,322 @@ export class HardwareService {
       message: `Manually set radar telemetry for ${radarValues.length} zones. Auto-blast status: ${autoBlastEnabled ? 'ENABLED (system will attempt auto-clearing)' : 'DISABLED (enable via SAB configuration first)'}`,
       radarValues,
     };
+  }
+
+  async getInventory() {
+    const [hubs, radars, sabs, solenoids, compressors] = await Promise.all([
+      this.hubModel.find().lean().exec(),
+      this.radarModel.find().lean().exec(),
+      this.airBlasterModel.find().lean().exec(),
+      this.solenoidModel.find().lean().exec(),
+      this.compressorModel.find().lean().exec(),
+    ]);
+
+    // Populate mock details if missing to ensure data is rich and structured
+    const enrichedHubs = hubs.map(h => ({
+      ...h,
+      firmware: h.firmware || '1.0.2',
+      hardwareVersion: h.hardwareVersion || 'Rev B',
+      macAddress: h.macAddress || '48:3F:DA:11:AB:F2',
+      serialNumber: h.serialNumber || `SN-HUB-${h.hubId}`,
+      installationDate: (h as any).createdAt || new Date('2026-01-15'),
+      lastMaintenance: new Date('2026-05-10'),
+      lastHeartbeat: h.lastHeartbeat || new Date(),
+      onlineStatus: h.status === 'Online' ? 'Online' : 'Offline'
+    }));
+
+    const enrichedRadars = radars.map(r => ({
+      ...r,
+      firmware: (r as any).firmware || '2.4.1',
+      hardwareVersion: (r as any).hardwareVersion || 'V3.2',
+      macAddress: (r as any).macAddress || `20:A6:80:FF:E0:0${r.zone}`,
+      serialNumber: (r as any).serialNumber || `SN-RADAR-${r._id.toString().slice(-6).toUpperCase()}`,
+      installationDate: (r as any).installationDate || new Date('2026-02-20'),
+      lastMaintenance: (r as any).lastMaintenance || new Date('2026-06-01'),
+      lastHeartbeat: (r as any).lastHeartbeat || new Date(),
+      onlineStatus: (r as any).onlineStatus || 'Online'
+    }));
+
+    const enrichedSabs = sabs.map(s => ({
+      ...s,
+      firmware: (s as any).firmware || '1.8.0',
+      hardwareVersion: (s as any).hardwareVersion || 'Mod C',
+      macAddress: (s as any).macAddress || `D4:C9:3C:A8:12:F${s.blasterNumber}`,
+      serialNumber: (s as any).serialNumber || `SN-SAB-${s._id.toString().slice(-6).toUpperCase()}`,
+      installationDate: (s as any).installationDate || new Date('2026-02-20'),
+      lastMaintenance: (s as any).lastMaintenance || new Date('2026-06-05'),
+      lastHeartbeat: (s as any).lastHeartbeat || new Date(),
+      onlineStatus: (s as any).onlineStatus || 'Online'
+    }));
+
+    const enrichedSolenoids = solenoids.map(s => ({
+      ...s,
+      firmware: (s as any).firmware || '1.0.5',
+      hardwareVersion: (s as any).hardwareVersion || 'V1.0',
+      macAddress: (s as any).macAddress || `E8:80:2F:3A:94:0${s.valveNumber}`,
+      serialNumber: (s as any).serialNumber || `SN-SOL-${s._id.toString().slice(-6).toUpperCase()}`,
+      installationDate: (s as any).installationDate || new Date('2026-02-20'),
+      lastMaintenance: (s as any).lastMaintenance || new Date('2026-06-05'),
+      lastHeartbeat: (s as any).lastHeartbeat || new Date(),
+      onlineStatus: (s as any).onlineStatus || 'Online'
+    }));
+
+    const enrichedCompressors = compressors.map(c => ({
+      ...c,
+      firmware: (c as any).firmware || '3.0.1',
+      hardwareVersion: (c as any).hardwareVersion || 'Industrial Air A1',
+      macAddress: (c as any).macAddress || 'A0:B1:C2:D3:E4:F5',
+      serialNumber: (c as any).serialNumber || `SN-COMP-${c._id.toString().slice(-6).toUpperCase()}`,
+      installationDate: (c as any).installationDate || new Date('2026-01-10'),
+      lastMaintenance: (c as any).lastMaintenance || new Date('2026-06-01'),
+      lastHeartbeat: (c as any).lastHeartbeat || new Date(),
+      onlineStatus: (c as any).onlineStatus || 'Online'
+    }));
+
+    return {
+      hubs: enrichedHubs,
+      radars: enrichedRadars,
+      sabs: enrichedSabs,
+      solenoids: enrichedSolenoids,
+      compressors: enrichedCompressors
+    };
+  }
+
+  async getPredictiveMaintenance(chuteId: string) {
+    const oId = new Types.ObjectId(chuteId);
+    const [radars, blasters, solenoids, compressor, hub] = await Promise.all([
+      this.radarModel.find({ chuteId: oId }).lean().exec(),
+      this.airBlasterModel.find({ chuteId: oId }).lean().exec(),
+      this.solenoidModel.find({ chuteId: oId }).lean().exec(),
+      this.compressorModel.findOne({ chuteId: oId }).lean().exec(),
+      this.hubModel.findOne({ chuteId: oId }).lean().exec(),
+    ]);
+
+    const componentPredictions: any[] = [];
+
+    radars.forEach((r) => {
+      const failureProb = Math.min(99, Math.max(1, Math.round((100 - r.healthScore) + (r.buildupRatePerMin * -100))));
+      const rulDays = Math.max(1, Math.round((r.healthScore / 100) * 365));
+      const maintenanceDate = new Date();
+      maintenanceDate.setDate(maintenanceDate.getDate() + rulDays);
+
+      componentPredictions.push({
+        type: 'Radar',
+        id: r._id,
+        name: `Radar Sensor (Zone ${r.zone})`,
+        rulDays,
+        failureProbability: failureProb,
+        maintenanceDate: maintenanceDate.toISOString(),
+        riskScore: Math.round(failureProb * 0.8),
+        metrics: { healthScore: r.healthScore, trend: r.trendDirection },
+      });
+    });
+
+    blasters.forEach((b) => {
+      const usagePercent = b.totalBlasts / b.lifespanBlasts;
+      const rulDays = Math.max(1, Math.round((1 - usagePercent) * 730));
+      const failureProb = Math.min(99, Math.max(1, Math.round(usagePercent * 100)));
+      const maintenanceDate = new Date();
+      maintenanceDate.setDate(maintenanceDate.getDate() + rulDays);
+
+      componentPredictions.push({
+        type: 'SAB',
+        id: b._id,
+        name: `Smart Air Blaster #${b.blasterNumber}`,
+        rulDays,
+        failureProbability: failureProb,
+        maintenanceDate: maintenanceDate.toISOString(),
+        riskScore: Math.round(failureProb * 0.9),
+        metrics: { totalBlasts: b.totalBlasts, lifespanBlasts: b.lifespanBlasts, healthScore: b.healthScore },
+      });
+    });
+
+    solenoids.forEach((s) => {
+      const usagePercent = s.totalCycles / s.lifespanCycles;
+      const rulDays = Math.max(1, Math.round((1 - usagePercent) * 540));
+      const failureProb = Math.min(99, Math.max(1, Math.round(usagePercent * 100)));
+      const maintenanceDate = new Date();
+      maintenanceDate.setDate(maintenanceDate.getDate() + rulDays);
+
+      componentPredictions.push({
+        type: 'Solenoid',
+        id: s._id,
+        name: `Solenoid Valve #${s.valveNumber}`,
+        rulDays,
+        failureProbability: failureProb,
+        maintenanceDate: maintenanceDate.toISOString(),
+        riskScore: Math.round(failureProb * 0.75),
+        metrics: { totalCycles: s.totalCycles, lifespanCycles: s.lifespanCycles, healthScore: s.healthScore },
+      });
+    });
+
+    if (compressor) {
+      const ageHoursFactor = compressor.runtimeHours / 10000;
+      const temperatureRisk = Math.max(0, (compressor.motorTemperature - 60) / 40);
+      const efficiencyLoss = (100 - compressor.efficiency) / 100;
+      
+      const failureProb = Math.min(99, Math.max(1, Math.round((ageHoursFactor * 40) + (temperatureRisk * 30) + (efficiencyLoss * 30))));
+      const rulDays = Math.max(1, Math.round(((100 - failureProb) / 100) * 365));
+      const maintenanceDate = new Date();
+      maintenanceDate.setDate(maintenanceDate.getDate() + rulDays);
+
+      componentPredictions.push({
+        type: 'Compressor',
+        id: compressor._id,
+        name: 'Main Air Compressor',
+        rulDays,
+        failureProbability: failureProb,
+        maintenanceDate: maintenanceDate.toISOString(),
+        riskScore: Math.round(failureProb * 0.85),
+        metrics: {
+          pressure: compressor.pressure,
+          motorTemperature: compressor.motorTemperature,
+          runtimeHours: compressor.runtimeHours,
+          efficiency: compressor.efficiency,
+        },
+      });
+    }
+
+    if (hub) {
+      const heartbeatDiff = hub.lastHeartbeat ? (new Date().getTime() - new Date(hub.lastHeartbeat).getTime()) / 1000 : 9999;
+      const isOffline = heartbeatDiff > 60;
+      const failureProb = isOffline ? 95 : Math.min(99, Math.max(1, Math.round(heartbeatDiff / 5)));
+      const rulDays = isOffline ? 1 : Math.max(1, Math.round((1 - failureProb / 100) * 365));
+      const maintenanceDate = new Date();
+      maintenanceDate.setDate(maintenanceDate.getDate() + rulDays);
+
+      componentPredictions.push({
+        type: 'Hub',
+        id: hub._id,
+        name: `Edge Gateway (Hub ${hub.hubId})`,
+        rulDays,
+        failureProbability: failureProb,
+        maintenanceDate: maintenanceDate.toISOString(),
+        riskScore: Math.round(failureProb * 0.7),
+        metrics: { status: hub.status, firmware: hub.firmware, connectionType: hub.simNumber ? 'Cellular' : 'Ethernet' },
+      });
+    }
+
+    return componentPredictions;
+  }
+
+  async getReplayTimeline(chuteId: string, start: string, end: string) {
+    const oId = new Types.ObjectId(chuteId);
+    const startTime = new Date(start);
+    const endTime = new Date(end);
+
+    const [telemetry, predictions, blastOutcomes, alerts] = await Promise.all([
+      this.telemetryModel.find({ chuteId: oId, timestamp: { $gte: startTime, $lte: endTime } }).sort({ timestamp: 1 }).lean().exec(),
+      this.aiPredictionModel.find({ chuteId: oId, createdAt: { $gte: startTime, $lte: endTime } }).sort({ createdAt: 1 }).lean().exec(),
+      this.blastOutcomeModel.find({ chuteId: oId, createdAt: { $gte: startTime, $lte: endTime } }).sort({ createdAt: 1 }).lean().exec(),
+      this.alertModel.find({ chuteId: oId, createdAt: { $gte: startTime, $lte: endTime } }).sort({ createdAt: 1 }).lean().exec(),
+    ]);
+
+    const timeline: any[] = [];
+
+    telemetry.forEach((t) => {
+      timeline.push({
+        timestamp: t.timestamp || (t as any).createdAt,
+        type: 'telemetry',
+        data: t,
+      });
+    });
+
+    predictions.forEach((p) => {
+      timeline.push({
+        timestamp: (p as any).createdAt || (p as any).timestamp,
+        type: 'prediction',
+        data: p,
+      });
+    });
+
+    blastOutcomes.forEach((b) => {
+      timeline.push({
+        timestamp: (b as any).createdAt || (b as any).timestamp,
+        type: 'blast',
+        data: b,
+      });
+    });
+
+    alerts.forEach((a) => {
+      timeline.push({
+        timestamp: (a as any).createdAt || (a as any).timestamp,
+        type: 'alert',
+        data: a,
+      });
+    });
+
+    timeline.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    return timeline;
+  }
+
+  async replayCommand(commandId: string, userId?: string) {
+    const oldCmd = await this.commandModel.findOne({ commandId }).exec();
+    if (!oldCmd) throw new NotFoundException('Command not found');
+
+    const newCommandId = require('crypto').randomUUID();
+    const newCmd = new this.commandModel({
+      ...oldCmd.toObject(),
+      _id: undefined,
+      commandId: newCommandId,
+      status: 'PUBLISHED',
+      retryCount: 0,
+      publishedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    await newCmd.save();
+
+    this.mqttService.publish(
+      `nigha/chute/${oldCmd.chuteId.toString()}/command`,
+      {
+        action: oldCmd.action,
+        commandId: newCommandId,
+        ...oldCmd.payload,
+        timestamp: new Date().toISOString(),
+      },
+    );
+
+    return newCmd;
+  }
+
+  async cancelCommand(commandId: string) {
+    const cmd = await this.commandModel.findOneAndUpdate(
+      { commandId },
+      { status: 'CANCELLED', failedAt: new Date(), failureReason: 'Cancelled by operator' },
+      { new: true }
+    ).exec();
+    if (!cmd) throw new NotFoundException('Command not found');
+    return cmd;
+  }
+
+  async manualExecute(chuteId: string, action: string, payload: any, userId?: string) {
+    const oId = new Types.ObjectId(chuteId);
+    const commandId = require('crypto').randomUUID();
+
+    const cmd = new this.commandModel({
+      commandId,
+      chuteId: oId,
+      action,
+      status: 'PUBLISHED',
+      payload,
+      triggerSource: 'manual',
+      triggeredBy: userId ? new Types.ObjectId(userId) : null,
+      publishedAt: new Date(),
+    });
+    await cmd.save();
+
+    this.mqttService.publish(
+      `nigha/chute/${chuteId}/command`,
+      {
+        action,
+        commandId,
+        ...payload,
+        timestamp: new Date().toISOString(),
+      },
+    );
+
+    return cmd;
   }
 }

@@ -924,6 +924,75 @@ export class IndustryService {
     return alert;
   }
 
+  async acknowledgeAlert(alertId: string, userId: string): Promise<Alert> {
+    const alert = await this.alertModel.findById(alertId).exec();
+    if (!alert) {
+      throw new NotFoundException('Alert not found');
+    }
+
+    alert.acknowledgedAt = new Date();
+    alert.acknowledgedBy = new Types.ObjectId(userId);
+    await alert.save();
+
+    const audit = new this.auditLogModel({
+      userId: new Types.ObjectId(userId),
+      action: 'Acknowledge Alert',
+      details: `Acknowledged alert: ${alert.message} (${alert.source})`,
+    });
+    await audit.save();
+
+    return alert;
+  }
+
+  async silenceAlert(alertId: string, userId: string): Promise<Alert> {
+    const alert = await this.alertModel.findById(alertId).exec();
+    if (!alert) {
+      throw new NotFoundException('Alert not found');
+    }
+
+    alert.isSilenced = true;
+    alert.silencedAt = new Date();
+    await alert.save();
+
+    const audit = new this.auditLogModel({
+      userId: new Types.ObjectId(userId),
+      action: 'Silence Alert',
+      details: `Silenced alert: ${alert.message} (${alert.source})`,
+    });
+    await audit.save();
+
+    return alert;
+  }
+
+  async escalateAlert(alertId: string, userId: string): Promise<Alert> {
+    const alert = await this.alertModel.findById(alertId).exec();
+    if (!alert) {
+      throw new NotFoundException('Alert not found');
+    }
+
+    const currentSev = alert.severity;
+    let newSev = 'Critical';
+    if (currentSev === 'Low' || currentSev === 'Info' || currentSev === 'INFO') {
+      newSev = 'Warning';
+    } else if (currentSev === 'Warning' || currentSev === 'Medium' || currentSev === 'WARNING') {
+      newSev = 'Critical';
+    } else {
+      newSev = 'Emergency';
+    }
+
+    alert.severity = newSev;
+    await alert.save();
+
+    const audit = new this.auditLogModel({
+      userId: new Types.ObjectId(userId),
+      action: 'Escalate Alert',
+      details: `Escalated alert severity from ${currentSev} to ${newSev}: ${alert.message}`,
+    });
+    await audit.save();
+
+    return alert;
+  }
+
   // --- AUDIT LOGS ---
   async getAuditLogs(user?: any): Promise<AuditLog[]> {
     const query: any = {};
@@ -954,6 +1023,10 @@ export class IndustryService {
       .sort({ createdAt: -1 })
       .lean()
       .exec() as any;
+  }
+
+  async getMqttStats() {
+    return this.mqttService.getMonitoringStats();
   }
 
   // --- MAINTENANCE TICKETS ---

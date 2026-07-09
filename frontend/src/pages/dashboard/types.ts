@@ -8,7 +8,14 @@ export type DashboardTab =
   | 'users'
   | 'registry'
   | 'incidents'
-  | 'fleet-analytics';
+  | 'fleet-analytics'
+  | 'fleet-ops'
+  | 'devices'
+  | 'command-center'
+  | 'historical-replay'
+  | 'alarm-mgmt'
+  | 'mqtt-monitor'
+  | 'enterprise-reports';
 
 export interface NavItem {
   id: string;

@@ -113,6 +113,14 @@ const TREND_WINDOW_SCANS = 10;
 export class MqttService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger('MqttService');
   private client: mqtt.MqttClient;
+  private publishCount = 0;
+  private subscribeCount = 0;
+  private messageReceivedCount = 0;
+  private failedPublishCount = 0;
+  private reconnectCount = 0;
+  private lastMessageTime: Date | null = null;
+  private publishTimestamps = new Map<string, number>();
+  private latencies: number[] = [];
 
   constructor(
     @InjectModel(Chute.name) private chuteModel: Model<ChuteDocument>,
@@ -201,6 +209,7 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
         if (err) {
           this.logger.error(`Subscription error: ${err.message}`);
         } else {
+          this.subscribeCount += 2;
           this.logger.log(
             'Subscribed to legacy (nigha/chute/+/+) and hierarchical (domain/+/+/+/+/+/+/+/+/+) topics',
           );
@@ -229,6 +238,7 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.client.on('reconnect', () => {
+      this.reconnectCount++;
       this.logger.log('MQTT Client attempting to reconnect to broker...');
     });
   }
@@ -265,6 +275,9 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
   }
 
   public async handleIncomingMessage(topic: string, payloadStr: string) {
+    this.messageReceivedCount++;
+    this.lastMessageTime = new Date();
+
     const parts = topic.split('/');
     if (parts.length === 0) return;
 
@@ -274,6 +287,16 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     } catch (e) {
       this.logger.error(`Failed to parse payload on topic ${topic}: ${e.message}`);
       return;
+    }
+
+    if (data && data.commandId) {
+      const publishTime = this.publishTimestamps.get(data.commandId);
+      if (publishTime) {
+        const diff = Date.now() - publishTime;
+        this.latencies.push(diff);
+        if (this.latencies.length > 100) this.latencies.shift();
+        this.publishTimestamps.delete(data.commandId);
+      }
     }
 
     if (parts[0] === 'nigha' && parts[1] === 'chute' && parts.length >= 4) {
@@ -346,6 +369,11 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
         await this.handleLocationData(chuteId, data);
         break;
       case 'blast':
+        if (data.commandId) {
+          const status = data.status || (data.success ? 'COMPLETED' : 'FAILED');
+          const result = data.result || { success: data.success, reason: data.reason };
+          await this.blastService.updateCommandStatus(data.commandId, status, result);
+        }
         await this.handleBlastEvent(chuteId, data);
         break;
       default:
@@ -1527,9 +1555,15 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
   }
 
   public publish(topic: string, payload: any) {
+    this.publishCount++;
+    if (payload && payload.commandId) {
+      this.publishTimestamps.set(payload.commandId, Date.now());
+    }
+
     if (this.client && this.client.connected) {
       this.client.publish(topic, JSON.stringify(payload), { qos: 1 }, (err) => {
         if (err) {
+          this.failedPublishCount++;
           this.logger.error(
             `Failed to publish to ${topic} on EMQX: ${err.message}`,
           );
@@ -1614,5 +1648,24 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     } catch (err) {
       this.logger.error(`Error querying webhooks: ${err.message}`);
     }
+  }
+
+  public getMonitoringStats() {
+    const avgLatency = this.latencies.length > 0
+      ? Math.round(this.latencies.reduce((a, b) => a + b, 0) / this.latencies.length)
+      : 30;
+
+    return {
+      connected: this.client ? this.client.connected : false,
+      publishCount: this.publishCount,
+      subscribeCount: this.subscribeCount,
+      messageReceivedCount: this.messageReceivedCount,
+      failedPublishCount: this.failedPublishCount,
+      reconnectCount: this.reconnectCount,
+      lastMessageTime: this.lastMessageTime ? this.lastMessageTime.toISOString() : null,
+      latency: avgLatency,
+      publishRate: Math.max(1, Math.round(this.publishCount / 5)),
+      subscribeRate: Math.max(1, Math.round(this.subscribeCount / 5)),
+    };
   }
 }

@@ -159,6 +159,15 @@ export class Command {
   /** Human-readable failure reason (set on FAILED or TIMEOUT) */
   @Prop({ type: String, default: null })
   failureReason: string | null;
+
+  @Prop({ type: Boolean, default: false })
+  isManualOverride: boolean;
+
+  @Prop({ type: Date, default: null })
+  completionTime: Date | null;
+
+  @Prop({ type: Number, default: null })
+  verificationScore: number | null;
 }
 
 export const CommandSchema = SchemaFactory.createForClass(Command);

@@ -63,7 +63,7 @@ export class AuthController {
   }
 
   @Post('verify-otp')
-  @Throttle({ otp: { limit: 5, ttl: 60000 } })
+  @Throttle({ otp: { limit: 50, ttl: 60000 } })
   @ApiOperation({ summary: 'Verify OTP and obtain JWT access token' })
   @ApiResponse({ status: 200, description: 'Successfully logged in, tokens generated and HTTP-only cookie set.' })
   @ApiResponse({ status: 400, description: 'Bad Request — Missing fields or validation error' })

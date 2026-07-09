@@ -46,6 +46,7 @@ export class IndustryController {
   constructor(private readonly industryService: IndustryService) {}
 
   @Get('plants')
+  @SkipThrottle()
   @ApiOperation({ summary: 'Get all plants' })
   @ApiResponse({ status: 200, description: 'Plants retrieved successfully.' })
   @ApiResponse({ status: 401, description: 'Unauthorized — Missing or invalid token' })
@@ -114,6 +115,7 @@ export class IndustryController {
   }
 
   @Get('chutes')
+  @SkipThrottle()
   @ApiOperation({ summary: 'Get all chutes (optional plantId filter)' })
   @ApiQuery({ name: 'plantId', required: false, description: 'Filter by plant ObjectId' })
   @ApiResponse({ status: 200, description: 'List of chutes retrieved.' })
@@ -260,6 +262,41 @@ export class IndustryController {
   @ApiResponse({ status: 404, description: 'Alert not found' })
   async resolveAlert(@Param('id') id: string, @Req() req: any) {
     return this.industryService.resolveAlert(id, req.user._id);
+  }
+
+  @Post('alerts/:id/acknowledge')
+  @ApiOperation({ summary: 'Acknowledge an active alert' })
+  @ApiResponse({ status: 200, description: 'Alert acknowledged successfully.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Alert not found' })
+  async acknowledgeAlert(@Param('id') id: string, @Req() req: any) {
+    return this.industryService.acknowledgeAlert(id, req.user._id);
+  }
+
+  @Post('alerts/:id/silence')
+  @ApiOperation({ summary: 'Silence an active alert' })
+  @ApiResponse({ status: 200, description: 'Alert silenced successfully.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Alert not found' })
+  async silenceAlert(@Param('id') id: string, @Req() req: any) {
+    return this.industryService.silenceAlert(id, req.user._id);
+  }
+
+  @Post('alerts/:id/escalate')
+  @ApiOperation({ summary: 'Escalate an active alert severity' })
+  @ApiResponse({ status: 200, description: 'Alert escalated successfully.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Alert not found' })
+  async escalateAlert(@Param('id') id: string, @Req() req: any) {
+    return this.industryService.escalateAlert(id, req.user._id);
+  }
+
+  @Get('mqtt/monitoring-stats')
+  @SkipThrottle()
+  @ApiOperation({ summary: 'Get live MQTT monitoring statistics' })
+  @ApiResponse({ status: 200, description: 'MQTT statistics retrieved successfully.' })
+  async getMqttStats() {
+    return this.industryService.getMqttStats();
   }
 
   @Get('audit-logs')
