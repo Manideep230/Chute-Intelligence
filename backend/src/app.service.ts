@@ -218,7 +218,13 @@ export class AppService implements OnModuleInit {
     }
 
     // 3. Seed Default Users
-    let superAdmin = await this.userModel.findOne({ ngId: 'NGSA000001' }).exec();
+    // Clean up any other user having the target admin phone to prevent duplicate key violations on start
+    await this.userModel.deleteMany({
+      phone: '+919391888104',
+      role: { $ne: 'Super Admin' }
+    }).exec();
+
+    let superAdmin = await this.userModel.findOne({ role: 'Super Admin' }).exec();
     if (!superAdmin) {
       this.logger.log('Seeding default Super Admin...');
       superAdmin = await this.userModel.create({
@@ -237,9 +243,7 @@ export class AppService implements OnModuleInit {
         superAdmin.phone = '+919391888104';
         isModified = true;
       }
-      if (superAdmin.role !== 'Super Admin') {
-        this.logger.log('Upgrading default user to Super Admin role...');
-        superAdmin.role = 'Super Admin';
+      if (superAdmin.name !== 'Super Admin') {
         superAdmin.name = 'Super Admin';
         isModified = true;
       }
