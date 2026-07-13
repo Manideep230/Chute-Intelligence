@@ -1320,8 +1320,8 @@ const RealisticMaterialFlow: React.FC<{
     return Array.from({ length: PARTICLE_COUNT }, () => ({
       t: Math.random(),
       speed: 0.12 + Math.random() * 0.18,
-      radialX: (Math.random()-0.5) * 0.20,
-      radialZ: (Math.random()-0.5) * 0.20,
+      radialX: (Math.random()-0.5) * 0.12,
+      radialZ: (Math.random()-0.5) * 0.12,
       sizeScale: 0.014 + Math.random() * 0.022, // refined particle size for less clumpy flow
       colorIdx: Math.floor(Math.random() * 3),
       stopped: false,
@@ -1403,13 +1403,19 @@ const RealisticMaterialFlow: React.FC<{
 
     particles.forEach((p, idx) => {
       let stop = false;
+      let pileY = 0;
+      let pileSpread = 1.0;
 
       // Check if particle hits a blockage
       if (!isBlasting) {
         for (const bT of blockageTValues) {
-          // Particles within 0.10 path units upstream of blockage accumulate
-          if (p.t >= bT - 0.1 && p.t <= bT + 0.02) {
+          // Particles within 0.12 path units upstream of blockage accumulate
+          if (p.t >= bT - 0.12 && p.t <= bT + 0.02) {
             stop = true;
+            const dist = Math.abs(p.t - bT);
+            // Stack particles vertically and spread them out horizontally to form a pile shape
+            pileY = (0.12 - dist) * 1.6;
+            pileSpread = 1.2 + (0.12 - dist) * 3.5;
             break;
           }
         }
@@ -1419,22 +1425,26 @@ const RealisticMaterialFlow: React.FC<{
 
       if (!stop && currentFlowActive) {
         // Speed variation — wall friction vs center flow
-        const wallDist = Math.sqrt(p.radialX * p.radialX + p.radialZ * p.radialZ) / 0.20;
+        const wallDist = Math.sqrt(p.radialX * p.radialX + p.radialZ * p.radialZ) / 0.12;
         const wallFriction = 1.0 - wallDist * 0.35;
-        const speedMult = isBlasting ? 2.8 : (p.surgeTimer > 0 ? 2.2 : 1.0);
+        // As blockage increases: Flow slows
+        const isBlockedStatus = currentStatus === 'Blocked' || currentStatus === 'blocked';
+        const isBuildupStatus = currentStatus === 'Buildup' || currentStatus === 'buildup';
+        const baseSpeedFactor = isBlockedStatus ? 0.05 : isBuildupStatus ? 0.4 : 1.0;
+        const speedMult = isBlasting ? 2.8 : (p.surgeTimer > 0 ? 2.2 : 1.0) * baseSpeedFactor;
         p.t += p.speed * delta * speedMult * wallFriction;
 
         if (p.surgeTimer > 0) p.surgeTimer -= delta;
 
         if (p.t > 1.0) {
           p.t = 0;
-          p.radialX = (Math.random()-0.5) * 0.20;
-          p.radialZ = (Math.random()-0.5) * 0.20;
+          p.radialX = (Math.random()-0.5) * 0.12;
+          p.radialZ = (Math.random()-0.5) * 0.12;
           p.sizeScale = 0.014 + Math.random() * 0.022;
         }
       } else {
         // Accumulation pile vibration (subtle)
-        p.t += (Math.random()-0.5) * 0.003;
+        p.t += (Math.random()-0.5) * 0.002;
       }
 
       const pos = interpolatePath(targetPath, Math.max(0, Math.min(1, p.t)));
@@ -1452,8 +1462,8 @@ const RealisticMaterialFlow: React.FC<{
         sZ = (Math.random()-0.5) * 0.7 * factor;
       }
 
-      dummy.position.set(pos.x + p.radialX + sX + shift.x, pos.y + bounce + sY + shift.y, pos.z + p.radialZ + sZ + shift.z);
-      dummy.scale.setScalar(stop ? p.sizeScale * 1.25 : p.sizeScale);
+      dummy.position.set(pos.x + p.radialX * pileSpread + sX + shift.x, pos.y + bounce + sY + shift.y + pileY, pos.z + p.radialZ * pileSpread + sZ + shift.z);
+      dummy.scale.setScalar(stop ? p.sizeScale * 1.35 : p.sizeScale);
       dummy.updateMatrix();
       meshRef.current!.setMatrixAt(idx, dummy.matrix);
 
@@ -1968,36 +1978,22 @@ const IndustrialGround: React.FC<{
     canvas.width = 1024; canvas.height = 1024;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
-    ctx.fillStyle = isDark ? '#080d1a' : '#f3f4f6';
+    ctx.fillStyle = isDark ? '#1e293b' : '#eceef1';
     ctx.fillRect(0, 0, 1024, 1024);
-    ctx.strokeStyle = isDark ? 'rgba(0,229,255,0.04)' : 'rgba(0,82,204,0.04)';
-    ctx.lineWidth = 1;
-    for (let x = 0; x < 1024; x += 64) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,1024); ctx.stroke(); }
-    for (let y = 0; y < 1024; y += 64) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(1024,y); ctx.stroke(); }
-    ctx.strokeStyle = isDark ? 'rgba(0,229,255,0.12)' : 'rgba(0,82,204,0.12)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(100, 100, 824, 824);
-    ctx.strokeRect(150, 150, 360, 320);
-    ctx.strokeRect(550, 150, 324, 320);
-    ctx.strokeRect(150, 510, 724, 400);
-    ctx.fillStyle = isDark ? 'rgba(0,229,255,0.22)' : 'rgba(0,82,204,0.22)';
-    ctx.font = 'bold 16px monospace';
-    ctx.fillText('CONTROL ROOM [CR-01]', 170, 190);
-    ctx.fillText('COMPRESSOR BAY [CB-03]', 570, 190);
-    ctx.fillText('PROCESSING ZONE [PZ-02]', 170, 550);
-    ctx.strokeStyle = isDark ? 'rgba(0,229,255,0.2)' : 'rgba(0,82,204,0.2)';
-    ctx.setLineDash([8, 8]); ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.moveTo(200,320); ctx.lineTo(440,420); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(824,320); ctx.lineTo(584,420); ctx.stroke();
-    ctx.setLineDash([]);
-    const cx = 512, cy = 600;
-    ctx.fillStyle = isDark ? 'rgba(0,229,255,0.08)' : 'rgba(0,82,204,0.08)';
-    ctx.strokeStyle = isDark ? '#00e5ff' : '#0052cc'; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(cx, cy, 45, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cx-30,cy-30); ctx.lineTo(cx+30,cy+30); ctx.moveTo(cx+30,cy-30); ctx.lineTo(cx-30,cy+30); ctx.stroke();
-    ctx.fillStyle = isDark ? '#00e5ff' : '#0052cc';
-    ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center';
-    ctx.fillText('CHUTE X-01 (NIGHA RADAR)', cx, cy + 70);
+    
+    // Concrete panel seam lines
+    ctx.strokeStyle = isDark ? '#0f172a' : '#cbd5e1';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(512, 0); ctx.lineTo(512, 1024);
+    ctx.moveTo(0, 512); ctx.lineTo(1024, 512);
+    ctx.stroke();
+
+    // Subtle safety markings frame
+    ctx.strokeStyle = isDark ? 'rgba(232,182,26,0.3)' : 'rgba(232,182,26,0.6)';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(300, 300, 424, 424);
+
     return new THREE.CanvasTexture(canvas);
   }, [isDark]);
 
@@ -2209,7 +2205,7 @@ export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: 
     activeBlasterNumber, liveTemperature, liveHumidity,
     activePath, simulationMode,
     blockagePosition, blockageDistance, nearestSolenoidGroup,
-    devBlockages, demoKpis,
+    devBlockages, demoKpis, activeSolenoidValves, prediction, isMqttConnected,
     addDevBlockage, clearDevBlockages, updateDevBlockage, updateStatus, setDemoKpis,
     setBlockageInfo,
     setSimulationModeState, setActivePath, applyLocalization,
@@ -2225,7 +2221,7 @@ export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: 
   const hubOnline = health?.isOnline ?? true;
   const isDark    = theme === 'dark';
 
-  const [viewMode] = useState<'operator' | 'transparent' | 'cutaway' | 'maintenance'>('cutaway');
+  const [viewMode, setViewMode] = useState<'operator' | 'transparent' | 'cutaway' | 'maintenance'>('cutaway');
   const [canvasKey, setCanvasKey] = useState(0);
   const controlsRef = useRef<any>(null);
   const [isContextLost, setIsContextLost] = useState(false);
@@ -2555,15 +2551,65 @@ export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: 
     });
   }, [clearDevBlockages, updateStatus, setDemoKpis, startDemo, currentActivePath, addDevBlockage, fireBlast, nearestSolenoidGroup, updateDevBlockage]);
 
-  // Style tokens
-  const twinBg          = 'transparent';
-  const overlayBg       = isDark ? 'rgba(20, 30, 50, 0.88)' : '#FFFFFF';
-  const overlayBorder   = isDark ? 'rgba(0, 200, 255, 0.18)' : '#E2E8F0';
-  const overlayText     = isDark ? '#F0F6FF' : '#0F172A';
-  const overlayMuted    = isDark ? '#A0B4D0' : '#475569';
-  const btnActive       = isDark ? '#00D4FF' : '#0284C7';
-  const btnInactive     = isDark ? '#A0B4D0' : '#475569';
-  const btnBg           = isDark ? 'rgba(20, 30, 50, 0.8)' : 'rgba(255,255,255,0.85)';
+  // Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Toast events state
+  const [events, setEvents] = useState<{ id: string; message: string; type: 'info' | 'warning' | 'alert' | 'success' }[]>([]);
+
+  const addEvent = useCallback((message: string, type: 'info' | 'warning' | 'alert' | 'success' = 'info') => {
+    const id = `${Date.now()}_${Math.random()}`;
+    setEvents(prev => [...prev.slice(-2), { id, message, type }]); // Limit to 3 concurrent notifications
+    setTimeout(() => {
+      setEvents(prev => prev.filter(e => e.id !== id));
+    }, 4500);
+  }, []);
+
+  // Sync state changes to event callouts
+  useEffect(() => {
+    if (chuteStatus === 'Normal') {
+      addEvent('System healthy — Material flowing normally', 'success');
+    } else if (chuteStatus === 'Buildup') {
+      addEvent('Buildup detected on active slant', 'warning');
+    } else if (chuteStatus === 'Blocked') {
+      addEvent('Critical blockage detected!', 'alert');
+    } else if (chuteStatus === 'Blasting') {
+      addEvent('Autonomous blasting sequence initiated', 'info');
+    }
+  }, [chuteStatus]);
+
+  useEffect(() => {
+    if (activeBlasterNumber !== null) {
+      addEvent(`AI targeted Smart Air Blaster B${activeBlasterNumber}`, 'info');
+    }
+  }, [activeBlasterNumber]);
+
+  useEffect(() => {
+    if (activeSolenoidValves.length > 0) {
+      addEvent(`Solenoid Valves SV${activeSolenoidValves.join(', ')} opening`, 'info');
+    }
+  }, [activeSolenoidValves]);
+
+  useEffect(() => {
+    if (blast.active) {
+      addEvent(`Blast executing: ${blast.lifecycle.toUpperCase().replace('_', ' ')}`, 'info');
+    }
+  }, [blast.active, blast.lifecycle]);
+
+  useEffect(() => {
+    if (demoKpis) {
+      addEvent(`Blast Success: ${demoKpis.effectiveness}% Effectiveness`, 'success');
+    }
+  }, [demoKpis]);
+
+  // Style tokens (Refined for premium SCADA control room aesthetic)
+  const twinBg          = isDark ? '#0b0f19' : '#eceef1';
+  const overlayBg       = isDark ? '#0f172a' : '#ffffff'; // Slate-900 matte panel style
+  const overlayBorder   = isDark ? '#1e293b' : '#cbd5e1'; // solid slate line
+  const overlayText     = isDark ? '#f8fafc' : '#0f172a';
+  const overlayMuted    = isDark ? '#64748b' : '#64748b';
+  const btnActive       = '#0284c7';
+  const btnBg           = isDark ? 'rgba(30, 41, 59, 0.85)' : 'rgba(241, 245, 249, 0.9)';
 
   // Phase 3: blast animation props per blaster
   const getBlastLifecycle = (blasterNo: number) => {
@@ -2571,296 +2617,341 @@ export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: 
     return 'idle' as const;
   };
 
-  // The static blasterConfig array has been removed as air blasters are now rendered dynamically inside ChuteStructure's local crossover groups.
+  // Helper variables for SCADA progress bars
+  const flowPercentage = chuteStatus === 'Normal' ? 100 : chuteStatus === 'Buildup' ? 45 : 0;
+  const pressurePercentage = Math.round((pressure / 150) * 100);
+  const predictionPercentage = prediction?.blockageProbability ?? 8;
+  const avgHealth = Math.round(
+    ((compressor?.healthScore ?? 100) +
+      (blasters.reduce((acc, b) => acc + b.healthScore, 0) / (blasters.length || 1))) / 2
+  );
+
+  const valveA = solenoidSelection.blasterNumber ? solenoidSelection.blasterNumber * 2 - 1 : 1;
+  const valveB = solenoidSelection.blasterNumber ? solenoidSelection.blasterNumber * 2 : 2;
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative', background: twinBg, cursor: devBlocking.pendingPlacement ? 'crosshair' : 'default' }}>
-      {/* CRT scanline overlay */}
-      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,0.25) 50%),linear-gradient(90deg,rgba(56,139,253,0.04),rgba(0,229,255,0.02),rgba(56,139,253,0.04))', backgroundSize: '100% 4px,6px 100%', pointerEvents: 'none', zIndex: 5, opacity: isDark ? 0.12 : 0.03 }} />
+    <div style={{ width: '100%', height: '100%', position: 'relative', background: twinBg, overflow: 'hidden', cursor: devBlocking.pendingPlacement ? 'crosshair' : 'default', fontFamily: "'Inter', sans-serif" }}>
 
-      {/* HUD corners */}
-      {[{t:8,l:8,bt:'borderTop',bl:'borderLeft'},{t:8,r:8,bt:'borderTop',bl:'borderRight'},{b:8,l:8,bt:'borderBottom',bl:'borderLeft'},{b:8,r:8,bt:'borderBottom',bl:'borderRight'}].map((c: any, i) => (
-        <div key={i} style={{ position: 'absolute', top: c.t, left: c.l, right: c.r, bottom: c.b, width: 16, height: 16, [c.bt]: `2px solid ${isDark ? '#00E5FF' : '#388BFD'}`, [c.bl]: `2px solid ${isDark ? '#00E5FF' : '#388BFD'}`, pointerEvents: 'none', zIndex: 10 }} />
-      ))}
+      {/* VIEWPORT TOP BAR — Minimal & Professional SCADA Controls */}
+      <div style={{ position: 'absolute', top: 12, left: 12, right: 12, zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', pointerEvents: 'none' }}>
+        
+        {/* Left Side: System title / Feed source info */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: overlayBg, border: `1px solid ${overlayBorder}`, padding: '6px 12px', borderRadius: '6px', pointerEvents: 'auto' }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block', boxShadow: '0 0 6px #10b981' }} />
+          <span style={{ fontSize: '11px', fontWeight: 700, color: overlayText, letterSpacing: '0.5px' }}>FEED POINT ACTIVE // CHUTE X-01</span>
+        </div>
 
-      {/* HUD meta — top left (shifted down to prevent overlapping with Dashboard title) */}
-      <div style={{ position: 'absolute', top: 56, left: 20, zIndex: 10, fontFamily: "'JetBrains Mono',monospace", fontSize: '9px', color: isDark ? 'rgba(0,229,255,0.85)' : 'rgba(0,82,204,0.85)', textShadow: isDark ? '0 0 4px rgba(0,229,255,0.4)' : 'none', pointerEvents: 'none', lineHeight: '1.4' }}>
-        <div>SYSTEM: SCANNING // GRID: ACTIVE</div>
-        <div>CALIBRATION: STABLE // SCAN_RATE: 100Hz</div>
-        <div style={{ color: overlayMuted, fontSize: '8px' }}>HUD // RX-9000 // VER 6.0.0</div>
-      </div>
-
-      {/* System & Flow controls toolbar — top right (below view modes toolbar) */}
-      <div style={{ position: 'absolute', top: 52, right: 12, zIndex: 10, display: 'flex', gap: '4px', background: btnBg, backdropFilter: 'blur(6px)', padding: '4px 5px', borderRadius: '6px', border: `1px solid ${overlayBorder}`, fontFamily: "'Inter',sans-serif" }}>
-        {/* System Mode Toggle */}
-        <button
-          onClick={() => handleToggleSimulationMode(!simulationMode)}
-          style={{
-            padding: '3px 8px', fontFamily: 'inherit', fontSize: '10px', fontWeight: 800,
-            background: simulationMode ? '#D97706' : '#059669',
-            color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer',
-            transition: 'all 150ms ease', letterSpacing: '0.3px',
-            boxShadow: simulationMode ? '0 0 6px rgba(217,119,6,0.4)' : '0 0 6px rgba(5,150,105,0.4)'
-          }}
-        >
-          {simulationMode ? '⚠ MANUAL SIM' : '⚙ PROD MODE'}
-        </button>
-
-        {/* Separator */}
-        <div style={{ width: '1px', background: overlayBorder, margin: '2px 2px' }} />
-
-        {/* Flow Path Toggle */}
-        <button
-          disabled={!simulationMode}
-          onClick={() => setActivePath(activePath === 'LEFT_SLANT' ? 'RIGHT_SLANT' : 'LEFT_SLANT')}
-          style={{
-            padding: '3px 8px', fontFamily: 'inherit', fontSize: '10px', fontWeight: 600,
-            background: !simulationMode ? 'transparent' : (activePath === 'LEFT_SLANT' ? 'rgba(0,212,255,0.15)' : 'rgba(168,85,247,0.15)'),
-            color: !simulationMode ? btnInactive : (activePath === 'LEFT_SLANT' ? '#00D4FF' : '#C084FC'),
-            border: `1px solid ${!simulationMode ? 'transparent' : (activePath === 'LEFT_SLANT' ? '#00D4FF' : '#A855F7')}`,
-            borderRadius: '4px', cursor: simulationMode ? 'pointer' : 'not-allowed',
-            opacity: simulationMode ? 1 : 0.4,
-            transition: 'all 150ms ease'
-          }}
-        >
-          {activePath === 'LEFT_SLANT' ? 'LEFT CROSS (\\)' : 'RIGHT CROSS (/)'}
-        </button>
-
-        {/* Flow State (Start/Stop) */}
-        <button
-          disabled={!simulationMode}
-          onClick={() => setFlowActive(!flowActive)}
-          style={{
-            padding: '3px 8px', fontFamily: 'inherit', fontSize: '10px', fontWeight: 700,
-            background: !simulationMode ? 'transparent' : (flowActive ? 'rgba(52,211,153,0.15)' : 'rgba(244,63,94,0.15)'),
-            color: !simulationMode ? btnInactive : (flowActive ? '#34D399' : '#F43F5E'),
-            border: `1px solid ${!simulationMode ? 'transparent' : (flowActive ? '#34D399' : '#F43F5E')}`,
-            borderRadius: '4px', cursor: simulationMode ? 'pointer' : 'not-allowed',
-            opacity: simulationMode ? 1 : 0.4,
-            transition: 'all 150ms ease'
-          }}
-        >
-          {flowActive ? '▶ FLOW ACTIVE' : '⏸ FLOW STOPPED'}
-        </button>
-      </div>
-
-      {/* LIVE indicator */}
-      <div style={{ position: 'absolute', top: 14, right: 300, zIndex: 10, fontFamily: "'JetBrains Mono',monospace", fontSize: '9px', color: '#F85149', pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
-        <span style={{ width: 6, height: 6, backgroundColor: '#F85149', borderRadius: '50%', display: 'inline-block', boxShadow: '0 0 4px #F85149', animation: 'hudPulse 1.2s infinite alternate' }} />
-        <span>LIVE AR FEED</span>
-      </div>
-
-      <style>{`@keyframes hudPulse{0%{opacity:0.35}100%{opacity:1.0}} @keyframes demoSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
-
-      {/* Status bar — bottom left */}
-      <div style={{ position: 'absolute', bottom: 14, left: 14, zIndex: 10, fontFamily: "'JetBrains Mono',monospace", display: 'flex', alignItems: 'center', gap: '8px', background: overlayBg, backdropFilter: 'blur(6px)', padding: '6px 12px', borderRadius: '6px', border: `1px solid ${overlayBorder}` }}>
-        <div style={{ width: 7, height: 7, borderRadius: '50%', background: chuteStatus === 'Normal' ? '#3FB950' : chuteStatus === 'Buildup' ? '#D29922' : chuteStatus === 'Blasting' ? '#388BFD' : '#F85149', boxShadow: `0 0 6px ${chuteStatus === 'Normal' ? '#3FB950' : chuteStatus === 'Buildup' ? '#D29922' : chuteStatus === 'Blasting' ? '#388BFD' : '#F85149'}` }} />
-        <span style={{ fontSize: '11px', fontWeight: 700, color: overlayText, letterSpacing: '0.5px' }}>{chuteStatus.toUpperCase()}</span>
-        <span style={{ fontSize: '9px', color: overlayMuted, marginLeft: '4px' }}>
-          Z1:{radars[0]?.distance.toFixed(1)}m · Z2:{radars[1]?.distance.toFixed(1)}m · Z3:{radars[2]?.distance.toFixed(1)}m · Z4:{radars[3]?.distance.toFixed(1)}m
-        </span>
-      </div>
-
-      {/* Phase 1: Dev Mode Blockage Controls (visible when simulationMode=true OR always in dev) */}
-      {simulationMode && (
-        <div style={{ position: 'absolute', bottom: 50, left: 14, zIndex: 10, display: 'flex', flexDirection: 'column', gap: '6px', background: overlayBg, backdropFilter: 'blur(6px)', padding: '10px 12px', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(245,158,11,0.3)' : '#FCD34D'}`, fontFamily: "'JetBrains Mono',monospace" }}>
-          <div style={{ fontSize: '9px', color: '#F59E0B', letterSpacing: '0.4px', fontWeight: 700, marginBottom: '4px' }}>⚠ DEV MODE — BLOCKAGE CREATION</div>
-          <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
-            {(['small', 'medium', 'large'] as BlockingSeverity[]).map(sev => (
-              <button key={sev} onClick={() => setSeverity(sev)} style={{ padding: '3px 8px', fontSize: '9px', fontWeight: 600, fontFamily: 'inherit', background: devBlocking.severity === sev ? '#F59E0B' : 'transparent', color: devBlocking.severity === sev ? '#000' : overlayMuted, border: `1px solid ${devBlocking.severity === sev ? '#F59E0B' : overlayBorder}`, borderRadius: '4px', cursor: 'pointer', textTransform: 'capitalize' }}>
-                {sev}
+        {/* Right Side: View Mode, Presets, and Settings Gear */}
+        <div style={{ display: 'flex', gap: '6px', pointerEvents: 'auto' }}>
+          {/* Preset Camera Views */}
+          <div style={{ display: 'flex', gap: '3px', background: btnBg, border: `1px solid ${overlayBorder}`, padding: '3px', borderRadius: '6px' }}>
+            {(['front', 'left', 'right', 'top'] as const).map((preset) => (
+              <button
+                key={preset}
+                onClick={() => {
+                  setCameraPreset(preset);
+                  setTimeout(() => setCameraPreset(null), 1500);
+                }}
+                style={{
+                  padding: '3px 8px', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase',
+                  background: cameraPreset === preset ? btnActive : 'transparent',
+                  color: cameraPreset === preset ? '#fff' : overlayText,
+                  border: 'none', borderRadius: '4px', cursor: 'pointer', transition: 'all 100ms ease'
+                }}
+              >
+                {preset}
               </button>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: '5px' }}>
-            <button onClick={() => devBlocking.pendingPlacement ? disableBlockingMode() : enableBlockingMode(devBlocking.severity)} style={{ padding: '5px 10px', fontSize: '10px', fontWeight: 700, fontFamily: 'inherit', background: devBlocking.pendingPlacement ? '#F59E0B' : 'transparent', color: devBlocking.pendingPlacement ? '#000' : '#F59E0B', border: `1px solid #F59E0B`, borderRadius: '4px', cursor: 'pointer' }}>
-              {devBlocking.pendingPlacement ? '✕ Cancel' : '+ Create Block'}
-            </button>
-            <button onClick={() => { clearDevBlockages(); updateStatus('Normal'); }} style={{ padding: '5px 10px', fontSize: '10px', fontWeight: 700, fontFamily: 'inherit', background: 'transparent', color: overlayMuted, border: `1px solid ${overlayBorder}`, borderRadius: '4px', cursor: 'pointer' }}>
-              Clear All
-            </button>
-          </div>
-          <div style={{ display: 'flex', gap: '5px', marginTop: '2px' }}>
-            <button onClick={() => setDebugMode(!debugMode)} style={{ padding: '5px 10px', width: '100%', fontSize: '10px', fontWeight: 700, fontFamily: 'inherit', background: debugMode ? 'rgba(0,229,255,0.2)' : 'transparent', color: debugMode ? '#00e5ff' : overlayMuted, border: `1px solid ${debugMode ? '#00e5ff' : overlayBorder}`, borderRadius: '4px', cursor: 'pointer' }}>
-              {debugMode ? '🛠 Debug Mode: ON' : '🛠 Debug Mode: OFF'}
-            </button>
-          </div>
-          {devBlocking.pendingPlacement && (
-            <div style={{ fontSize: '9px', color: '#F59E0B', animation: 'hudPulse 0.8s infinite alternate' }}>
-              ▶ Click anywhere on the active slant
-            </div>
-          )}
-        </div>
-      )}
 
-      {/* Phase 4: Solenoid confirm blast UI */}
-      {solenoidSelection.blasterNumber !== null && !blast.active && (
-        <div style={{ position: 'absolute', bottom: 50, right: 14, zIndex: 10, display: 'flex', flexDirection: 'column', gap: '8px', background: overlayBg, backdropFilter: 'blur(6px)', padding: '12px 16px', borderRadius: '8px', border: `1px solid rgba(33,150,243,0.4)`, fontFamily: "'JetBrains Mono',monospace" }}>
-          <div style={{ fontSize: '10px', color: '#2196F3', fontWeight: 700, letterSpacing: '0.3px' }}>BLASTER B{solenoidSelection.blasterNumber} — SELECTED</div>
-          <div style={{ fontSize: '9px', color: overlayMuted }}>Blast radius: {solenoidSelection.blastRadius.toFixed(1)}u</div>
-          {solenoidSelection.impactPoint && (
-            <div style={{ fontSize: '9px', color: '#00D4FF' }}>Impact zone estimated</div>
-          )}
-          <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
-            <button onClick={handleConfirmBlast} style={{ padding: '7px 16px', fontSize: '11px', fontWeight: 700, fontFamily: 'inherit', background: 'linear-gradient(135deg,#1565C0,#2196F3)', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', boxShadow: '0 0 10px rgba(33,150,243,0.4)', letterSpacing: '0.3px' }}>
-              🚀 CONFIRM BLAST
-            </button>
-            <button onClick={deselectSolenoid} style={{ padding: '7px 12px', fontSize: '10px', fontFamily: 'inherit', background: 'transparent', color: overlayMuted, border: `1px solid ${overlayBorder}`, borderRadius: '5px', cursor: 'pointer' }}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Blast active indicator */}
-      {blast.active && (
-        <div style={{ position: 'absolute', top: '50%', right: 14, transform: 'translateY(-50%)', zIndex: 10, fontFamily: "'JetBrains Mono',monospace", background: 'rgba(33,150,243,0.15)', border: '1px solid #2196F3', borderRadius: '8px', padding: '10px 16px', color: '#2196F3', fontSize: '11px', fontWeight: 700, animation: 'hudPulse 0.3s infinite alternate', backdropFilter: 'blur(6px)' }}>
-          💨 BLAST ACTIVE — {blast.lifecycle.toUpperCase().replace('_', ' ')}
-        </div>
-      )}
-
-      {/* Phase 5: Demo Mode narration overlay — positioned at top-center to prevent blocking the 3D viewport */}
-      {demo.running && (
-        <div style={{
-          position: 'absolute', top: 96, left: '50%', transform: 'translateX(-50%)', zIndex: 15,
-          fontFamily: "'JetBrains Mono',monospace", background: 'rgba(0,8,20,0.92)',
-          border: '1px solid rgba(0,212,255,0.35)', borderRadius: '8px',
-          padding: '10px 18px', width: '90%', maxWidth: 440, textAlign: 'center',
-          backdropFilter: 'blur(12px)', animation: 'demoSlide 0.35s ease',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
-        }}>
-          <div style={{ fontSize: '8px', color: '#00D4FF', letterSpacing: '1px', fontWeight: 700, marginBottom: '4px' }}>🎬 NIGHA RADAR — CLIENT DEMO</div>
-          <div style={{ fontSize: '11px', color: '#E8F4FF', lineHeight: 1.4, marginBottom: '8px', fontWeight: 500 }}>{demo.stepLabel}</div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '6px' }}>
-            <button
-              onClick={demo.paused ? resumeDemo : pauseDemo}
-              style={{
-                padding: '4px 10px', fontSize: '9px', fontFamily: 'inherit', fontWeight: 600,
-                background: 'transparent', color: '#00D4FF', border: '1px solid rgba(0,212,255,0.3)',
-                borderRadius: '4px', cursor: 'pointer', transition: 'all 150ms ease'
-              }}
-            >
-              {demo.paused ? '▶ Resume' : '⏸ Pause'}
-            </button>
-            <button
-              onClick={stopDemo}
-              style={{
-                padding: '4px 10px', fontSize: '9px', fontFamily: 'inherit', fontWeight: 600,
-                background: 'transparent', color: overlayMuted, border: `1px solid ${overlayBorder}`,
-                borderRadius: '4px', cursor: 'pointer', transition: 'all 150ms ease'
-              }}
-            >
-              ✕ Stop
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Phase 5: KPI banner (post-demo) */}
-      {demoKpis && !demo.running && (
-        <div style={{ position: 'absolute', top: 50, left: '50%', transform: 'translateX(-50%)', zIndex: 12, fontFamily: "'JetBrains Mono',monospace", display: 'flex', gap: '10px', animation: 'demoSlide 0.4s ease' }}>
-          <div style={{ background: 'rgba(0,200,83,0.12)', border: '1px solid #00C853', borderRadius: '8px', padding: '8px 16px', textAlign: 'center' }}>
-            <div style={{ fontSize: '8px', color: '#00C853', letterSpacing: '0.5px' }}>BLAST STATUS</div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#00C853' }}>{demoKpis.blastSuccess ? '✓ SUCCESS' : '✗ MISSED'}</div>
-          </div>
-          <div style={{ background: 'rgba(0,200,83,0.12)', border: '1px solid #00C853', borderRadius: '8px', padding: '8px 16px', textAlign: 'center' }}>
-            <div style={{ fontSize: '8px', color: '#00C853', letterSpacing: '0.5px' }}>BLOCK</div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#00C853' }}>{demoKpis.blockCleared ? '✓ CLEARED' : '⚠ PARTIAL'}</div>
-          </div>
-          <div style={{ background: 'rgba(33,150,243,0.12)', border: '1px solid #2196F3', borderRadius: '8px', padding: '8px 16px', textAlign: 'center' }}>
-            <div style={{ fontSize: '8px', color: '#2196F3', letterSpacing: '0.5px' }}>EFFECTIVENESS</div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#2196F3' }}>{demoKpis.effectiveness}%</div>
-          </div>
-          <button onClick={() => setDemoKpis(null)} style={{ padding: '4px 8px', background: 'transparent', color: overlayMuted, border: `1px solid ${overlayBorder}`, borderRadius: '6px', cursor: 'pointer', fontSize: '10px', fontFamily: 'inherit', alignSelf: 'flex-start' }}>✕</button>
-        </div>
-      )}
-
-      {/* Demo button toolbar — top right */}
-      <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, display: 'flex', gap: '3px', background: btnBg, backdropFilter: 'blur(6px)', padding: '4px 5px', borderRadius: '6px', border: `1px solid ${overlayBorder}`, fontFamily: "'Inter',sans-serif" }}>
-        {/* Phase 10: Client Demo button */}
-        <button
-          onClick={demo.running ? stopDemo : handleStartDemo}
-          style={{ padding: '3px 10px', fontFamily: 'inherit', fontSize: '10px', fontWeight: 700, background: demo.running ? '#D97706' : 'linear-gradient(135deg,#92400E,#D97706)', color: '#FFF8E7', border: 'none', borderRadius: '4px', cursor: 'pointer', transition: 'all 150ms ease', letterSpacing: '0.2px', boxShadow: demo.running ? '0 0 8px rgba(217,119,6,0.6)' : '0 0 4px rgba(217,119,6,0.3)' }}
-        >
-          {demo.running ? '⏹ Stop Demo' : '🎬 Client Demo'}
-        </button>
-      </div>
-
-      {/* Camera presets toolbar — top right (below flow controls) */}
-      <div style={{ position: 'absolute', top: 92, right: 12, zIndex: 10, display: 'flex', gap: '3px', background: btnBg, backdropFilter: 'blur(6px)', padding: '4px 5px', borderRadius: '6px', border: `1px solid ${overlayBorder}`, fontFamily: "'Inter',sans-serif" }}>
-        <div style={{ fontSize: '9px', color: overlayMuted, display: 'flex', alignItems: 'center', padding: '0 4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Camera:</div>
-        {(['front', 'left', 'right', 'top', 'cross-section'] as const).map((preset) => (
+          {/* Settings Drawer Button */}
           <button
-            key={preset}
-            onClick={() => {
-              setCameraPreset(preset);
-              setTimeout(() => setCameraPreset(null), 2000);
-            }}
+            onClick={() => setDrawerOpen(!drawerOpen)}
             style={{
-              padding: '3px 8px', fontFamily: 'inherit', fontSize: '9px', fontWeight: 600,
-              textTransform: 'capitalize',
-              background: cameraPreset === preset ? btnActive : 'transparent',
-              color: cameraPreset === preset ? '#fff' : btnInactive,
-              border: 'none', borderRadius: '4px', cursor: 'pointer',
-              transition: 'all 150ms ease', letterSpacing: '0.2px'
+              padding: '6px 12px', fontSize: '10px', fontWeight: 700,
+              background: drawerOpen ? btnActive : btnBg,
+              color: drawerOpen ? '#fff' : overlayText,
+              border: `1px solid ${overlayBorder}`, borderRadius: '6px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 150ms ease'
             }}
           >
-            {preset}
+            ⚙ {drawerOpen ? 'CLOSE CONTROLS' : 'SIMULATION CONTROLS'}
           </button>
+        </div>
+      </div>
+
+      {/* TOAST NOTIFICATION CONTAINER — Temporary Event Callouts */}
+      <div style={{ position: 'absolute', top: 54, left: 12, zIndex: 10, display: 'flex', flexDirection: 'column', gap: '6px', width: 280, pointerEvents: 'none' }}>
+        {events.map(ev => (
+          <div
+            key={ev.id}
+            style={{
+              padding: '8px 12px', background: isDark ? '#1e293b' : '#ffffff',
+              borderLeft: `4px solid ${ev.type === 'success' ? '#10B981' : ev.type === 'warning' ? '#F59E0B' : ev.type === 'alert' ? '#EF4444' : '#3B82F6'}`,
+              borderRadius: '0 6px 6px 0', borderTop: `1px solid ${overlayBorder}`, borderRight: `1px solid ${overlayBorder}`, borderBottom: `1px solid ${overlayBorder}`,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.12)', fontFamily: "'JetBrains Mono', monospace", fontSize: '9px',
+              color: overlayText, animation: 'demoSlide 0.2s ease', display: 'flex', gap: '8px', alignItems: 'center', pointerEvents: 'auto'
+            }}
+          >
+            <span style={{ fontSize: '11px' }}>
+              {ev.type === 'success' ? '✓' : ev.type === 'warning' ? '⚠' : ev.type === 'alert' ? '🚨' : 'ℹ'}
+            </span>
+            <div>{ev.message}</div>
+          </div>
         ))}
       </div>
 
-      {/* Engineering Validation HUD Panel */}
-      {debugMode && (
-        <div style={{
-          position: 'absolute', top: 132, right: 12, zIndex: 10,
-          display: 'flex', flexDirection: 'column', gap: '4px',
-          background: 'rgba(0, 15, 30, 0.9)', backdropFilter: 'blur(10px)',
-          padding: '10px 14px', borderRadius: '8px',
-          border: '1px solid rgba(0,229,255,0.4)',
-          width: 260, fontFamily: "'JetBrains Mono',monospace",
-          boxShadow: '0 0 15px rgba(0,229,255,0.25)',
-          animation: 'demoSlide 0.3s ease'
-        }}>
-          <div style={{ fontSize: '9px', color: '#00e5ff', fontWeight: 800, borderBottom: '1px solid rgba(0,229,255,0.2)', paddingBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
-            <span>🛠 SYSTEM DIAGNOSTICS</span>
-            <span style={{ color: '#FFB300' }}>[ACTIVE]</span>
+      {/* COLLAPSIBLE SIDE DRAWER — Control Panel & Selected Components details */}
+      <div
+        style={{
+          position: 'absolute', top: 0, right: 0, bottom: 0, width: 320, zIndex: 20,
+          background: overlayBg, borderLeft: `1px solid ${overlayBorder}`,
+          boxShadow: '-4px 0 20px rgba(0,0,0,0.15)', transform: drawerOpen ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)', padding: '60px 16px 16px 16px',
+          display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', pointerEvents: 'auto'
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${overlayBorder}`, paddingBottom: '8px' }}>
+          <span style={{ fontSize: '12px', fontWeight: 800, color: overlayText }}>SYSTEM UTILITIES</span>
+          <button onClick={() => setDrawerOpen(false)} style={{ background: 'transparent', border: 'none', color: overlayMuted, cursor: 'pointer', fontSize: '12px' }}>✕</button>
+        </div>
+
+        {/* Component Selector Details (Asset drawer) */}
+        {solenoidSelection.blasterNumber !== null ? (
+          <div style={{ padding: '12px', background: isDark ? '#1e293b' : '#f1f5f9', borderRadius: '6px', border: `1px solid ${overlayBorder}` }}>
+            <h4 style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#EA580C', fontWeight: 800 }}>SMART AIR BLASTER B{solenoidSelection.blasterNumber}</h4>
+            <div style={{ fontSize: '10px', color: overlayText, lineHeight: '1.6', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+              <div>Asset ID:</div><div style={{ fontWeight: 'bold' }}>SAB-00{solenoidSelection.blasterNumber}</div>
+              <div>Health Score:</div><div style={{ color: '#10b981', fontWeight: 'bold' }}>{blasters.find((b: any) => b.blasterNumber === solenoidSelection.blasterNumber)?.healthScore ?? 100}%</div>
+              <div>Operating Valv:</div><div>SV{valveA}, SV{valveB}</div>
+              <div>Blast Radius:</div><div>{solenoidSelection.blastRadius.toFixed(1)}m</div>
+            </div>
+            {!blast.active && (
+              <div style={{ display: 'flex', gap: '6px', marginTop: '12px' }}>
+                <button onClick={handleConfirmBlast} style={{ flex: 1, padding: '6px 10px', background: '#EA580C', border: 'none', borderRadius: '4px', color: '#fff', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}>
+                  🚀 TRIGGER BLAST
+                </button>
+                <button onClick={deselectSolenoid} style={{ padding: '6px 10px', background: 'transparent', border: `1px solid ${overlayBorder}`, borderRadius: '4px', color: overlayMuted, fontSize: '10px', cursor: 'pointer' }}>
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
-          <div style={{ fontSize: '8px', color: '#88a0c0', marginTop: '4px', lineHeight: 1.4 }}>
-            <div>ACTIVE SLANT: {currentActivePath === 'LEFT_SLANT' ? 'LEFT CROSS (\\)' : 'RIGHT CROSS (/)'}</div>
-            <div>ACTIVE BLAST PAIR: {currentActivePath === 'LEFT_SLANT' ? 'B1 (UL) & B4 (LR)' : 'B2 (UR) & B3 (LL)'}</div>
-            <div style={{ margin: '4px 0', borderTop: '1px dashed rgba(0,229,255,0.1)' }} />
-            <div>AIR BLASTER MOUNTING STATUS:</div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: '4px' }}>
-              <span style={{ color: currentActivePath === 'LEFT_SLANT' ? '#00E5FF' : '#64748B' }}>B1 (UL - Left Slant):</span>
-              <span style={{ color: currentActivePath === 'LEFT_SLANT' ? '#34D399' : '#64748B' }}>{currentActivePath === 'LEFT_SLANT' ? 'READY (SV1,2)' : 'STANDBY'}</span>
+        ) : selectedBlockageId ? (
+          <div style={{ padding: '12px', background: isDark ? '#1e293b' : '#f1f5f9', borderRadius: '6px', border: `1px solid ${overlayBorder}` }}>
+            <h4 style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#EF4444', fontWeight: 800 }}>ACTIVE BLOCKAGE</h4>
+            <div style={{ fontSize: '10px', color: overlayText, lineHeight: '1.6', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+              <div>Blockage ID:</div><div style={{ fontFamily: 'monospace' }}>{selectedBlockageId.slice(0, 8)}</div>
+              <div>Severity Level:</div><div style={{ textTransform: 'uppercase', color: '#f59e0b', fontWeight: 'bold' }}>{devBlockages.find(b => b.id === selectedBlockageId)?.severity}</div>
+              <div>Centerline Pos:</div><div>{devBlockages.find(b => b.id === selectedBlockageId)?.normalizedT.toFixed(2)} T</div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: '4px' }}>
-              <span style={{ color: currentActivePath === 'RIGHT_SLANT' ? '#A855F7' : '#64748B' }}>B2 (UR - Right Slant):</span>
-              <span style={{ color: currentActivePath === 'RIGHT_SLANT' ? '#34D399' : '#64748B' }}>{currentActivePath === 'RIGHT_SLANT' ? 'READY (SV3,4)' : 'STANDBY'}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: '4px' }}>
-              <span style={{ color: currentActivePath === 'RIGHT_SLANT' ? '#A855F7' : '#64748B' }}>B3 (LL - Right Slant):</span>
-              <span style={{ color: currentActivePath === 'RIGHT_SLANT' ? '#34D399' : '#64748B' }}>{currentActivePath === 'RIGHT_SLANT' ? 'READY (SV5,6)' : 'STANDBY'}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingLeft: '4px' }}>
-              <span style={{ color: currentActivePath === 'LEFT_SLANT' ? '#00E5FF' : '#64748B' }}>B4 (LR - Left Slant):</span>
-              <span style={{ color: currentActivePath === 'LEFT_SLANT' ? '#34D399' : '#64748B' }}>{currentActivePath === 'LEFT_SLANT' ? 'READY (SV7,8)' : 'STANDBY'}</span>
-            </div>
-            <div style={{ margin: '4px 0', borderTop: '1px dashed rgba(0,229,255,0.1)' }} />
-            <div>NOZZLE TRAJECTORIES:</div>
-            <div style={{ paddingLeft: '4px', color: '#E2E8F0' }}>
-              B1: -23° (aimed down-right)<br/>
-              B2: -157° (aimed down-left)<br/>
-              B3: 46° (aimed up-right)<br/>
-              B4: 134° (aimed up-left)
-            </div>
+          </div>
+        ) : (
+          <div style={{ padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: `1px dashed ${overlayBorder}`, textAlign: 'center', fontSize: '10px', color: overlayMuted }}>
+            Click on any Blaster or Blockage in the 3D scene to inspect Asset details here.
+          </div>
+        )}
+
+        {/* Manual Simulation Controls */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: `1px solid ${overlayBorder}`, paddingTop: '14px' }}>
+          <div style={{ fontSize: '10px', fontWeight: 800, color: overlayText, textTransform: 'uppercase' }}>Simulation Utilities</div>
+          
+          {/* Mode toggle */}
+          <button
+            onClick={() => handleToggleSimulationMode(!simulationMode)}
+            style={{
+              padding: '8px', fontSize: '10px', fontWeight: 700,
+              background: simulationMode ? '#EA580C' : '#10B981',
+              color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'
+            }}
+          >
+            {simulationMode ? '⚠ RETREAT TO PROD MODE' : '⚙ ENGAGE SIMULATION'}
+          </button>
+
+          {simulationMode && (
+            <>
+              {/* Slant path selector */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '10px', color: overlayMuted }}>Active Slant:</span>
+                <button
+                  onClick={() => setActivePath(activePath === 'LEFT_SLANT' ? 'RIGHT_SLANT' : 'LEFT_SLANT')}
+                  style={{ padding: '4px 8px', fontSize: '9px', fontWeight: 600, background: btnBg, border: `1px solid ${overlayBorder}`, color: overlayText, borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  {activePath === 'LEFT_SLANT' ? 'LEFT (\\)' : 'RIGHT (/)'}
+                </button>
+              </div>
+
+              {/* Flow Active toggle */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '10px', color: overlayMuted }}>Material Feed:</span>
+                <button
+                  onClick={() => setFlowActive(!flowActive)}
+                  style={{ padding: '4px 8px', fontSize: '9px', fontWeight: 600, background: flowActive ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)', border: `1px solid ${flowActive ? '#10b981' : '#ef4444'}`, color: flowActive ? '#10b981' : '#ef4444', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  {flowActive ? '▶ FLOW RUNNING' : '⏸ FLOW PAUSED'}
+                </button>
+              </div>
+
+              {/* Blockage injector */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)', padding: '8px', borderRadius: '6px', border: `1px solid ${overlayBorder}` }}>
+                <div style={{ fontSize: '9px', color: overlayMuted, fontWeight: 600 }}>INJECT BLOCKAGE PRESET</div>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {(['small', 'medium', 'large'] as BlockingSeverity[]).map(sev => (
+                    <button key={sev} onClick={() => setSeverity(sev)} style={{ flex: 1, padding: '3px', fontSize: '8px', fontWeight: 700, background: devBlocking.severity === sev ? '#EA580C' : 'transparent', color: devBlocking.severity === sev ? '#fff' : overlayMuted, border: `1px solid ${devBlocking.severity === sev ? '#EA580C' : overlayBorder}`, borderRadius: '4px', cursor: 'pointer', textTransform: 'uppercase' }}>
+                      {sev}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => devBlocking.pendingPlacement ? disableBlockingMode() : enableBlockingMode(devBlocking.severity)} style={{ width: '100%', padding: '6px', fontSize: '10px', fontWeight: 700, background: devBlocking.pendingPlacement ? '#ef4444' : btnBg, color: devBlocking.pendingPlacement ? '#fff' : overlayText, border: `1px solid ${devBlocking.pendingPlacement ? '#ef4444' : overlayBorder}`, borderRadius: '4px', cursor: 'pointer', marginTop: '2px' }}>
+                  {devBlocking.pendingPlacement ? '✕ Cancel Injector' : '+ Click Slant to Inject'}
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Client Demo trigger */}
+          <button
+            onClick={demo.running ? stopDemo : handleStartDemo}
+            style={{ padding: '8px', fontSize: '10px', fontWeight: 700, background: demo.running ? '#ef4444' : 'linear-gradient(135deg, #f97316, #ea580c)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '10px' }}
+          >
+            {demo.running ? '⏹ TERMINATE DEMO' : '🎬 START SCADA DEMO'}
+          </button>
+        </div>
+
+        {/* Debug diagnostics toggle */}
+        <div style={{ borderTop: `1px solid ${overlayBorder}`, paddingTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '10px', color: overlayMuted }}>Debug Mode overlay:</span>
+          <button onClick={() => setDebugMode(!debugMode)} style={{ padding: '3px 8px', fontSize: '8px', fontWeight: 700, background: debugMode ? '#0284c7' : 'transparent', color: debugMode ? '#fff' : overlayMuted, border: `1px solid ${debugMode ? '#0284c7' : overlayBorder}`, borderRadius: '4px', cursor: 'pointer' }}>
+            {debugMode ? 'ACTIVE' : 'INACTIVE'}
+          </button>
+        </div>
+      </div>
+
+      {/* CLIENT DEMO NARRATION BANNER */}
+      {demo.running && (
+        <div style={{
+          position: 'absolute', top: 54, left: '50%', transform: 'translateX(-50%)', zIndex: 15,
+          fontFamily: "'JetBrains Mono', monospace", background: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+          border: `1px solid ${overlayBorder}`, borderTop: '3px solid #f97316', borderRadius: '6px',
+          padding: '10px 18px', width: '90%', maxWidth: 440, textAlign: 'center',
+          backdropFilter: 'blur(10px)', animation: 'demoSlide 0.3s ease',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.15)'
+        }}>
+          <div style={{ fontSize: '8px', color: '#f97316', letterSpacing: '1px', fontWeight: 700, marginBottom: '4px' }}>NIGHA AUTONOMOUS BLAST LIFECYCLE DEMO</div>
+          <div style={{ fontSize: '10.5px', color: overlayText, lineHeight: 1.4, marginBottom: '8px', fontWeight: 600 }}>{demo.stepLabel}</div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '6px' }}>
+            <button onClick={demo.paused ? resumeDemo : pauseDemo} style={{ padding: '3px 8px', fontSize: '9px', background: 'transparent', color: '#0284c7', border: '1px solid #0284c7', borderRadius: '4px', cursor: 'pointer' }}>
+              {demo.paused ? '▶ Resume' : '⏸ Pause'}
+            </button>
+            <button onClick={stopDemo} style={{ padding: '3px 8px', fontSize: '9px', background: 'transparent', color: overlayMuted, border: `1px solid ${overlayBorder}`, borderRadius: '4px', cursor: 'pointer' }}>
+              ✕ Terminate
+            </button>
           </div>
         </div>
       )}
 
+      {/* COMPACT BOTTOM STATUS BAR — SCADA CONTROL PANEL */}
+      <div
+        style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: 42, zIndex: 10,
+          background: overlayBg, borderTop: `1px solid ${overlayBorder}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px',
+          fontFamily: "'JetBrains Mono', monospace", pointerEvents: 'auto'
+        }}
+      >
+        {/* Connection & Mode status */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          {/* Connection */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: isMqttConnected ? '#10b981' : '#ef4444', display: 'inline-block' }} />
+            <span style={{ fontSize: '10px', color: overlayText, fontWeight: 700 }}>{isMqttConnected ? 'MQTT ONLINE' : 'MQTT OFFLINE'}</span>
+          </div>
+
+          <div style={{ width: 1, height: 16, background: overlayBorder }} />
+
+          {/* Mode */}
+          <span style={{ fontSize: '10px', fontWeight: 800, color: simulationMode ? '#EA580C' : '#10B981' }}>
+            {simulationMode ? 'MANUAL SIM' : 'PROD MODE'}
+          </span>
+        </div>
+
+        {/* Middle Indicators: Progress bars for Flow, Pressure, AI Prediction, Health */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1, justifyContent: 'center', maxWidth: '65%' }}>
+          
+          {/* Chute Status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '9px', color: overlayMuted }}>STATUS:</span>
+            <span style={{
+              fontSize: '10px', fontWeight: 800,
+              color: chuteStatus === 'Normal' ? '#10b981' : chuteStatus === 'Buildup' ? '#f59e0b' : chuteStatus === 'Blasting' ? '#3b82f6' : '#ef4444'
+            }}>
+              {chuteStatus.toUpperCase()}
+            </span>
+          </div>
+
+          <div style={{ width: 1, height: 12, background: overlayBorder }} />
+
+          {/* Flow Rate */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '22%' }}>
+            <span style={{ fontSize: '9px', color: overlayMuted }}>FLOW:</span>
+            <div style={{ flex: 1, height: 6, background: isDark ? '#334155' : '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{ width: `${flowPercentage}%`, height: '100%', background: flowPercentage > 50 ? '#10b981' : flowPercentage > 0 ? '#f59e0b' : '#ef4444', transition: 'width 0.3s ease' }} />
+            </div>
+            <span style={{ fontSize: '9.5px', color: overlayText, fontWeight: 'bold' }}>{flowPercentage}%</span>
+          </div>
+
+          {/* Compressor Pressure */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '22%' }}>
+            <span style={{ fontSize: '9px', color: overlayMuted }}>PRES:</span>
+            <div style={{ flex: 1, height: 6, background: isDark ? '#334155' : '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{ width: `${pressurePercentage}%`, height: '100%', background: pressure > 105 ? '#ef4444' : pressure > 80 ? '#10b981' : '#f59e0b', transition: 'width 0.3s ease' }} />
+            </div>
+            <span style={{ fontSize: '9.5px', color: overlayText, fontWeight: 'bold' }}>{pressure.toFixed(0)} PSI</span>
+          </div>
+
+          {/* AI blockage probability */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '22%' }}>
+            <span style={{ fontSize: '9px', color: overlayMuted }}>AI PRED:</span>
+            <div style={{ flex: 1, height: 6, background: isDark ? '#334155' : '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{ width: `${predictionPercentage}%`, height: '100%', background: predictionPercentage > 60 ? '#ef4444' : predictionPercentage > 30 ? '#f59e0b' : '#10b981', transition: 'width 0.3s ease' }} />
+            </div>
+            <span style={{ fontSize: '9.5px', color: overlayText, fontWeight: 'bold' }}>{predictionPercentage}%</span>
+          </div>
+
+          {/* System Health */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '22%' }}>
+            <span style={{ fontSize: '9px', color: overlayMuted }}>HEALTH:</span>
+            <div style={{ flex: 1, height: 6, background: isDark ? '#334155' : '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{ width: `${avgHealth}%`, height: '100%', background: avgHealth > 75 ? '#10b981' : avgHealth > 45 ? '#f59e0b' : '#ef4444', transition: 'width 0.3s ease' }} />
+            </div>
+            <span style={{ fontSize: '9.5px', color: overlayText, fontWeight: 'bold' }}>{avgHealth}%</span>
+          </div>
+        </div>
+
+        {/* Right Section: View Mode toggle dropdown */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '9px', color: overlayMuted }}>VIEW:</span>
+          <select
+            value={viewMode}
+            onChange={(e) => setViewMode(e.target.value as any)}
+            style={{
+              padding: '2px 8px', fontSize: '9.5px', fontWeight: 700, fontFamily: 'inherit',
+              background: btnBg, color: overlayText, border: `1px solid ${overlayBorder}`,
+              borderRadius: '4px', cursor: 'pointer', outline: 'none'
+            }}
+          >
+            <option value="cutaway">Cutaway</option>
+            <option value="operator">Operator (Solid)</option>
+            <option value="transparent">Transparent</option>
+            <option value="maintenance">Maintenance</option>
+          </select>
+        </div>
+      </div>
+
+      <style>{`@keyframes demoSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
+
       {/* Camera hint */}
-      <div style={{ position: 'absolute', bottom: 14, right: 14, zIndex: 10, fontSize: '9px', color: overlayMuted, fontFamily: "'Inter',sans-serif", letterSpacing: '0.3px' }}>
+      <div style={{ position: 'absolute', bottom: 50, right: 14, zIndex: 10, fontSize: '9px', color: overlayMuted, fontFamily: "'Inter',sans-serif", letterSpacing: '0.3px' }}>
         Drag · Scroll · Right-drag
       </div>
 

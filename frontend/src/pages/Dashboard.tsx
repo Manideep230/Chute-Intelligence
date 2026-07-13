@@ -7,8 +7,6 @@ import {
   Activity, Wrench, FileText, Settings, Users, Inbox, AlertTriangle, BarChart3, Shield, Radio, Film, Bell
 } from 'lucide-react';
 
-import IncidentCenter from './IncidentCenter';
-
 // Extracted modules
 import { getThemeColors } from './dashboard/constants';
 import { useDashboardData } from './dashboard/hooks/useDashboardData';
@@ -19,32 +17,28 @@ import { Sidebar } from './dashboard/components/Sidebar';
 import { HeaderBar } from './dashboard/components/HeaderBar';
 import { MobileNav } from './dashboard/components/MobileNav';
 
-// Extracted tabs & operations components
-import { MaintenanceTab } from './dashboard/components/MaintenanceTab';
-import { AuditTab } from './dashboard/components/AuditTab';
-import { UsersTab } from './dashboard/components/UsersTab';
-import { ProfileTab } from './dashboard/components/ProfileTab';
-import { RegistryTab } from './dashboard/components/RegistryTab';
-import { OperationsGrid } from './dashboard/components/operations/OperationsGrid';
-import { DrillDownDrawer } from './dashboard/components/operations/DrillDownDrawer';
-
-// New Enterprise Tabs
-import { FleetOperationsTab } from './dashboard/components/FleetOperationsTab';
-import { DevicesTab } from './dashboard/components/DevicesTab';
-import { CommandCenterTab } from './dashboard/components/CommandCenterTab';
-import { HistoricalReplayTab } from './dashboard/components/HistoricalReplayTab';
-import { AlarmManagementTab } from './dashboard/components/AlarmManagementTab';
-import { MqttMonitorTab } from './dashboard/components/MqttMonitorTab';
-import { ReportingTab } from './dashboard/components/ReportingTab';
-
-// Extracted modals
+// Extracted modals, drawers, and types
 import { ReportModal } from './dashboard/components/modals/ReportModal';
 import { CalibrationWizard } from './dashboard/components/modals/CalibrationWizard';
 import { BlockageModal } from './dashboard/components/modals/BlockageModal';
-
+import { DrillDownDrawer } from './dashboard/components/operations/DrillDownDrawer';
 import type { DashboardTab } from './dashboard/types';
 
-// Lazy load FleetAnalytics for bundle separation
+// Lazy load heavy components and tabs for route/bundle optimization
+const IncidentCenter = React.lazy(() => import('./IncidentCenter'));
+const MaintenanceTab = React.lazy(() => import('./dashboard/components/MaintenanceTab').then(module => ({ default: module.MaintenanceTab })));
+const AuditTab = React.lazy(() => import('./dashboard/components/AuditTab').then(module => ({ default: module.AuditTab })));
+const UsersTab = React.lazy(() => import('./dashboard/components/UsersTab').then(module => ({ default: module.UsersTab })));
+const ProfileTab = React.lazy(() => import('./dashboard/components/ProfileTab').then(module => ({ default: module.ProfileTab })));
+const RegistryTab = React.lazy(() => import('./dashboard/components/RegistryTab').then(module => ({ default: module.RegistryTab })));
+const OperationsGrid = React.lazy(() => import('./dashboard/components/operations/OperationsGrid').then(module => ({ default: module.OperationsGrid })));
+const FleetOperationsTab = React.lazy(() => import('./dashboard/components/FleetOperationsTab').then(module => ({ default: module.FleetOperationsTab })));
+const DevicesTab = React.lazy(() => import('./dashboard/components/DevicesTab').then(module => ({ default: module.DevicesTab })));
+const CommandCenterTab = React.lazy(() => import('./dashboard/components/CommandCenterTab').then(module => ({ default: module.CommandCenterTab })));
+const HistoricalReplayTab = React.lazy(() => import('./dashboard/components/HistoricalReplayTab').then(module => ({ default: module.HistoricalReplayTab })));
+const AlarmManagementTab = React.lazy(() => import('./dashboard/components/AlarmManagementTab').then(module => ({ default: module.AlarmManagementTab })));
+const MqttMonitorTab = React.lazy(() => import('./dashboard/components/MqttMonitorTab').then(module => ({ default: module.MqttMonitorTab })));
+const ReportingTab = React.lazy(() => import('./dashboard/components/ReportingTab').then(module => ({ default: module.ReportingTab })));
 const FleetAnalytics = React.lazy(() => import('./FleetAnalytics'));
 
 export const Dashboard: React.FC = () => {
@@ -331,121 +325,121 @@ export const Dashboard: React.FC = () => {
           />
 
           {/* TAB ROUTING */}
-          {activeTab === 'dashboard' && (
-            <OperationsGrid
-              chutes={chutes}
-              theme={theme}
-              roleAccess={roleAccess}
-              setExpandedTile={setExpandedTile}
-              expandedTile={expandedTile}
-              twinRotationX={twinRotationX}
-              setTwinRotationX={setTwinRotationX}
-              triggerPullToRefresh={triggerPullToRefresh}
-              isRefreshing={isRefreshing}
-              setReportModalOpen={setReportModalOpen}
-              setCalibModalOpen={setCalibModalOpen}
-              setBlockageModalOpen={setBlockageModalOpen}
-              chuteHealthScore={chuteHealthScore}
-              blastEffScore={blastEffScore}
-              timelineEvents={timelineEvents}
-              throughput={throughput}
-              throughputHistory={throughputHistory}
-              wearIndex={wearIndex}
-              avgBlasterHealth={avgBlasterHealth}
-              energy={energy}
-              chuteKpis={chuteKpis}
-            />
-          )}
+          <React.Suspense fallback={
+            <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
+              <CircularProgress color="inherit" size={30} />
+            </div>
+          }>
+            {activeTab === 'dashboard' && (
+              <OperationsGrid
+                chutes={chutes}
+                theme={theme}
+                roleAccess={roleAccess}
+                setExpandedTile={setExpandedTile}
+                expandedTile={expandedTile}
+                twinRotationX={twinRotationX}
+                setTwinRotationX={setTwinRotationX}
+                triggerPullToRefresh={triggerPullToRefresh}
+                isRefreshing={isRefreshing}
+                setReportModalOpen={setReportModalOpen}
+                setCalibModalOpen={setCalibModalOpen}
+                setBlockageModalOpen={setBlockageModalOpen}
+                chuteHealthScore={chuteHealthScore}
+                blastEffScore={blastEffScore}
+                timelineEvents={timelineEvents}
+                throughput={throughput}
+                throughputHistory={throughputHistory}
+                wearIndex={wearIndex}
+                avgBlasterHealth={avgBlasterHealth}
+                energy={energy}
+                chuteKpis={chuteKpis}
+              />
+            )}
 
-          {activeTab === 'maintenance' && roleAccess.isManager && (
-            <MaintenanceTab
-              maintenanceTickets={maintenanceTickets}
-              loading={maintenanceLoading}
-              roleAccess={roleAccess}
-              token={token}
-              activeChuteId={activeChuteId}
-              loadMaintenanceTickets={loadMaintenanceTickets}
-              theme={theme}
-            />
-          )}
+            {activeTab === 'maintenance' && roleAccess.isManager && (
+              <MaintenanceTab
+                maintenanceTickets={maintenanceTickets}
+                loading={maintenanceLoading}
+                roleAccess={roleAccess}
+                token={token}
+                activeChuteId={activeChuteId}
+                loadMaintenanceTickets={loadMaintenanceTickets}
+                theme={theme}
+              />
+            )}
 
-          {activeTab === 'audit' && roleAccess.canViewAuditLogs && (
-            <AuditTab auditLogs={auditLogs} loading={auditLoading} theme={theme} />
-          )}
+            {activeTab === 'audit' && roleAccess.canViewAuditLogs && (
+              <AuditTab auditLogs={auditLogs} loading={auditLoading} theme={theme} />
+            )}
 
-          {activeTab === 'users' && roleAccess.canViewUserManagement && (
-            <UsersTab
-              allUsers={allUsers}
-              userLoading={false}
-              roleAccess={roleAccess}
-              token={token}
-              currentUser={user}
-              loadAllUsers={loadAllUsers}
-              loadAssignments={loadAssignments}
-              theme={theme}
-            />
-          )}
+            {activeTab === 'users' && roleAccess.canViewUserManagement && (
+              <UsersTab
+                allUsers={allUsers}
+                userLoading={false}
+                roleAccess={roleAccess}
+                token={token}
+                currentUser={user}
+                loadAllUsers={loadAllUsers}
+                loadAssignments={loadAssignments}
+                theme={theme}
+              />
+            )}
 
-          {activeTab === 'profile' && (
-            <ProfileTab theme={theme} />
-          )}
+            {activeTab === 'profile' && (
+              <ProfileTab theme={theme} />
+            )}
 
-          {activeTab === 'registry' && roleAccess.isAdmin && (
-            <RegistryTab
-              plantsList={plantsList}
-              chutes={chutes}
-              allUsers={allUsers}
-              assignments={assignments}
-              roleAccess={roleAccess}
-              token={token}
-              theme={theme}
-              setChutes={setChutes}
-              setPlantsList={setPlantsList}
-              loadAssignments={loadAssignments}
-            />
-          )}
+            {activeTab === 'registry' && roleAccess.isAdmin && (
+              <RegistryTab
+                plantsList={plantsList}
+                chutes={chutes}
+                allUsers={allUsers}
+                assignments={assignments}
+                roleAccess={roleAccess}
+                token={token}
+                theme={theme}
+                setChutes={setChutes}
+                setPlantsList={setPlantsList}
+                loadAssignments={loadAssignments}
+              />
+            )}
 
-          {activeTab === 'incidents' && roleAccess.canManageIncidents && (
-            <IncidentCenter activeChuteId={activeChuteId || undefined} />
-          )}
+            {activeTab === 'incidents' && roleAccess.canManageIncidents && (
+              <IncidentCenter activeChuteId={activeChuteId || undefined} />
+            )}
 
-          {activeTab === 'fleet-analytics' && roleAccess.canViewFleetAnalytics && (
-            <React.Suspense fallback={
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
-                <CircularProgress color="inherit" size={30} />
-              </div>
-            }>
+            {activeTab === 'fleet-analytics' && roleAccess.canViewFleetAnalytics && (
               <FleetAnalytics />
-            </React.Suspense>
-          )}
+            )}
 
-          {activeTab === 'fleet-ops' && (
-            <FleetOperationsTab plantsList={plantsList} chutes={chutes} />
-          )}
+            {activeTab === 'fleet-ops' && (
+              <FleetOperationsTab plantsList={plantsList} chutes={chutes} />
+            )}
 
-          {activeTab === 'devices' && (
-            <DevicesTab activeChuteId={activeChuteId || ''} token={token || ''} />
-          )}
+            {activeTab === 'devices' && (
+              <DevicesTab activeChuteId={activeChuteId || ''} token={token || ''} />
+            )}
 
-          {activeTab === 'command-center' && (
-            <CommandCenterTab activeChuteId={activeChuteId || ''} token={token || ''} />
-          )}
+            {activeTab === 'command-center' && (
+              <CommandCenterTab activeChuteId={activeChuteId || ''} token={token || ''} />
+            )}
 
-          {activeTab === 'historical-replay' && (
-            <HistoricalReplayTab activeChuteId={activeChuteId || ''} token={token || ''} />
-          )}
+            {activeTab === 'historical-replay' && (
+              <HistoricalReplayTab activeChuteId={activeChuteId || ''} token={token || ''} />
+            )}
 
-          {activeTab === 'alarm-mgmt' && (
-            <AlarmManagementTab activeChuteId={activeChuteId || ''} token={token || ''} />
-          )}
+            {activeTab === 'alarm-mgmt' && (
+              <AlarmManagementTab activeChuteId={activeChuteId || ''} token={token || ''} />
+            )}
 
-          {activeTab === 'mqtt-monitor' && (
-            <MqttMonitorTab token={token || ''} />
-          )}
+            {activeTab === 'mqtt-monitor' && (
+              <MqttMonitorTab token={token || ''} />
+            )}
 
-          {activeTab === 'enterprise-reports' && (
-            <ReportingTab activeChuteId={activeChuteId || ''} token={token || ''} />
-          )}
+            {activeTab === 'enterprise-reports' && (
+              <ReportingTab activeChuteId={activeChuteId || ''} token={token || ''} />
+            )}
+          </React.Suspense>
         </div>
       </div>
 

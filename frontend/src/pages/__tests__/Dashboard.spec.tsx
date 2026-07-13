@@ -6,7 +6,7 @@ import { Dashboard } from '../Dashboard';
 // Mock the zustand stores
 vi.mock('../../store/authStore', () => ({
   useAuthStore: () => ({
-    user: { _id: '123', name: 'Test Industrial Operator', role: 'Worker', phone: '+919999999999', isActive: true },
+    user: { _id: '123', name: 'Test Industrial Operator', role: 'Worker', phone: '+919391888104', isActive: true },
     token: 'mock-access-token',
     logout: vi.fn(),
     updateUser: vi.fn(),

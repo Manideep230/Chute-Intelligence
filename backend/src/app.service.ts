@@ -218,23 +218,34 @@ export class AppService implements OnModuleInit {
     }
 
     // 3. Seed Default Users
-    let superAdmin = await this.userModel.findOne({ phone: '+919999999999' }).exec();
+    let superAdmin = await this.userModel.findOne({ ngId: 'NGSA000001' }).exec();
     if (!superAdmin) {
       this.logger.log('Seeding default Super Admin...');
       superAdmin = await this.userModel.create({
         ngId: 'NGSA000001',
         name: 'Super Admin',
-        phone: '+919999999999',
+        phone: '+919391888104',
         role: 'Super Admin',
         isActive: true,
         organizationId: defaultOrg._id,
         assignedPlantIds: [],
       });
-    } else if (superAdmin && superAdmin.role !== 'Super Admin') {
-      this.logger.log('Upgrading user +919999999999 to Super Admin role...');
-      superAdmin.role = 'Super Admin';
-      superAdmin.name = 'Super Admin';
-      await superAdmin.save();
+    } else {
+      let isModified = false;
+      if (superAdmin.phone !== '+919391888104') {
+        this.logger.log('Updating default Super Admin phone number to +919391888104...');
+        superAdmin.phone = '+919391888104';
+        isModified = true;
+      }
+      if (superAdmin.role !== 'Super Admin') {
+        this.logger.log('Upgrading default user to Super Admin role...');
+        superAdmin.role = 'Super Admin';
+        superAdmin.name = 'Super Admin';
+        isModified = true;
+      }
+      if (isModified) {
+        await superAdmin.save();
+      }
     }
 
     let workerUser = await this.userModel.findOne({ phone: '+918888888888' }).exec();

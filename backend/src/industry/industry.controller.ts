@@ -46,7 +46,7 @@ export class IndustryController {
   constructor(private readonly industryService: IndustryService) {}
 
   @Get('plants')
-  @SkipThrottle()
+  @SkipThrottle({ default: true, otp: true, aiChat: true, blast: true })
   @ApiOperation({ summary: 'Get all plants' })
   @ApiResponse({ status: 200, description: 'Plants retrieved successfully.' })
   @ApiResponse({ status: 401, description: 'Unauthorized — Missing or invalid token' })
@@ -115,7 +115,7 @@ export class IndustryController {
   }
 
   @Get('chutes')
-  @SkipThrottle()
+  @SkipThrottle({ default: true, otp: true, aiChat: true, blast: true })
   @ApiOperation({ summary: 'Get all chutes (optional plantId filter)' })
   @ApiQuery({ name: 'plantId', required: false, description: 'Filter by plant ObjectId' })
   @ApiResponse({ status: 200, description: 'List of chutes retrieved.' })
@@ -183,7 +183,7 @@ export class IndustryController {
   }
 
   @Get('chutes/:id/detail')
-  @SkipThrottle()
+  @SkipThrottle({ default: true, otp: true, aiChat: true, blast: true })
   @ApiOperation({
     summary:
       'Get detailed chute operational telemetry, health, and configuration',
@@ -247,6 +247,7 @@ export class IndustryController {
   }
 
   @Get('alerts')
+  @SkipThrottle({ default: true, otp: true, aiChat: true, blast: true })
   @ApiOperation({ summary: 'Get active alerts feed' })
   @ApiQuery({ name: 'chuteId', required: false, description: 'Filter alerts by chute ObjectId' })
   @ApiResponse({ status: 200, description: 'Alerts retrieved successfully.' })
@@ -292,7 +293,7 @@ export class IndustryController {
   }
 
   @Get('mqtt/monitoring-stats')
-  @SkipThrottle()
+  @SkipThrottle({ default: true, otp: true, aiChat: true, blast: true })
   @ApiOperation({ summary: 'Get live MQTT monitoring statistics' })
   @ApiResponse({ status: 200, description: 'MQTT statistics retrieved successfully.' })
   async getMqttStats() {
@@ -459,7 +460,7 @@ export class IndustryController {
   }
 
   @Get('chutes/:id/kpis')
-  @SkipThrottle()
+  @SkipThrottle({ default: true, otp: true, aiChat: true, blast: true })
   @ApiOperation({
     summary:
       'Get full chute intelligence KPI set: uptime, blockage minutes, blast effectiveness, air consumption',

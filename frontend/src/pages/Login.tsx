@@ -5,7 +5,7 @@ import { TextField, Button, CircularProgress, Alert } from '@mui/material';
 
 export const Login: React.FC = () => {
   const { setAuth } = useAuthStore();
-  const [phone, setPhone] = useState('+919999999999');
+  const [phone, setPhone] = useState('+919391888104');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<1 | 2>(1);
   const [loading, setLoading] = useState(false);
@@ -192,7 +192,7 @@ export const Login: React.FC = () => {
                   variant="outlined"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+919999999999"
+                  placeholder="+919391888104"
                   required
                   slotProps={{
                     input: {

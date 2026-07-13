@@ -518,84 +518,104 @@ export class HardwareService {
     const componentPredictions: any[] = [];
 
     radars.forEach((r) => {
-      const failureProb = Math.min(99, Math.max(1, Math.round((100 - r.healthScore) + (r.buildupRatePerMin * -100))));
-      const rulDays = Math.max(1, Math.round((r.healthScore / 100) * 365));
+      const hScore = typeof r.healthScore === 'number' && !isNaN(r.healthScore) ? r.healthScore : 100;
+      const bRate = typeof r.buildupRatePerMin === 'number' && !isNaN(r.buildupRatePerMin) ? r.buildupRatePerMin : 0;
+      const failureProb = Math.min(99, Math.max(1, Math.round((100 - hScore) + (bRate * -100))));
+      const rulDays = Math.max(1, Math.round((hScore / 100) * 365));
+      const validRulDays = isNaN(rulDays) || !isFinite(rulDays) ? 365 : rulDays;
+
       const maintenanceDate = new Date();
-      maintenanceDate.setDate(maintenanceDate.getDate() + rulDays);
+      maintenanceDate.setDate(maintenanceDate.getDate() + validRulDays);
 
       componentPredictions.push({
         type: 'Radar',
         id: r._id,
         name: `Radar Sensor (Zone ${r.zone})`,
-        rulDays,
+        rulDays: validRulDays,
         failureProbability: failureProb,
         maintenanceDate: maintenanceDate.toISOString(),
         riskScore: Math.round(failureProb * 0.8),
-        metrics: { healthScore: r.healthScore, trend: r.trendDirection },
+        metrics: { healthScore: hScore, trend: r.trendDirection || 'stable' },
       });
     });
 
     blasters.forEach((b) => {
-      const usagePercent = b.totalBlasts / b.lifespanBlasts;
+      const hScore = typeof b.healthScore === 'number' && !isNaN(b.healthScore) ? b.healthScore : 100;
+      const totalB = typeof b.totalBlasts === 'number' && !isNaN(b.totalBlasts) ? b.totalBlasts : 0;
+      const lifespanB = typeof b.lifespanBlasts === 'number' && !isNaN(b.lifespanBlasts) && b.lifespanBlasts > 0 ? b.lifespanBlasts : 20000;
+      const usagePercent = totalB / lifespanB;
       const rulDays = Math.max(1, Math.round((1 - usagePercent) * 730));
+      const validRulDays = isNaN(rulDays) || !isFinite(rulDays) ? 730 : rulDays;
       const failureProb = Math.min(99, Math.max(1, Math.round(usagePercent * 100)));
+
       const maintenanceDate = new Date();
-      maintenanceDate.setDate(maintenanceDate.getDate() + rulDays);
+      maintenanceDate.setDate(maintenanceDate.getDate() + validRulDays);
 
       componentPredictions.push({
         type: 'SAB',
         id: b._id,
         name: `Smart Air Blaster #${b.blasterNumber}`,
-        rulDays,
+        rulDays: validRulDays,
         failureProbability: failureProb,
         maintenanceDate: maintenanceDate.toISOString(),
         riskScore: Math.round(failureProb * 0.9),
-        metrics: { totalBlasts: b.totalBlasts, lifespanBlasts: b.lifespanBlasts, healthScore: b.healthScore },
+        metrics: { totalBlasts: totalB, lifespanBlasts: lifespanB, healthScore: hScore },
       });
     });
 
     solenoids.forEach((s) => {
-      const usagePercent = s.totalCycles / s.lifespanCycles;
+      const hScore = typeof s.healthScore === 'number' && !isNaN(s.healthScore) ? s.healthScore : 100;
+      const totalC = typeof s.totalCycles === 'number' && !isNaN(s.totalCycles) ? s.totalCycles : 0;
+      const lifespanC = typeof s.lifespanCycles === 'number' && !isNaN(s.lifespanCycles) && s.lifespanCycles > 0 ? s.lifespanCycles : 50000;
+      const usagePercent = totalC / lifespanC;
       const rulDays = Math.max(1, Math.round((1 - usagePercent) * 540));
+      const validRulDays = isNaN(rulDays) || !isFinite(rulDays) ? 540 : rulDays;
       const failureProb = Math.min(99, Math.max(1, Math.round(usagePercent * 100)));
+
       const maintenanceDate = new Date();
-      maintenanceDate.setDate(maintenanceDate.getDate() + rulDays);
+      maintenanceDate.setDate(maintenanceDate.getDate() + validRulDays);
 
       componentPredictions.push({
         type: 'Solenoid',
         id: s._id,
         name: `Solenoid Valve #${s.valveNumber}`,
-        rulDays,
+        rulDays: validRulDays,
         failureProbability: failureProb,
         maintenanceDate: maintenanceDate.toISOString(),
         riskScore: Math.round(failureProb * 0.75),
-        metrics: { totalCycles: s.totalCycles, lifespanCycles: s.lifespanCycles, healthScore: s.healthScore },
+        metrics: { totalCycles: totalC, lifespanCycles: lifespanC, healthScore: hScore },
       });
     });
 
     if (compressor) {
-      const ageHoursFactor = compressor.runtimeHours / 10000;
-      const temperatureRisk = Math.max(0, (compressor.motorTemperature - 60) / 40);
-      const efficiencyLoss = (100 - compressor.efficiency) / 100;
+      const hScore = typeof compressor.healthScore === 'number' && !isNaN(compressor.healthScore) ? compressor.healthScore : 100;
+      const runtimeH = typeof compressor.runtimeHours === 'number' && !isNaN(compressor.runtimeHours) ? compressor.runtimeHours : 0;
+      const ageHoursFactor = runtimeH / 10000;
+      const motorT = typeof compressor.motorTemperature === 'number' && !isNaN(compressor.motorTemperature) ? compressor.motorTemperature : 50;
+      const temperatureRisk = Math.max(0, (motorT - 60) / 40);
+      const efficiency = typeof compressor.efficiency === 'number' && !isNaN(compressor.efficiency) ? compressor.efficiency : 100;
+      const efficiencyLoss = (100 - efficiency) / 100;
       
       const failureProb = Math.min(99, Math.max(1, Math.round((ageHoursFactor * 40) + (temperatureRisk * 30) + (efficiencyLoss * 30))));
       const rulDays = Math.max(1, Math.round(((100 - failureProb) / 100) * 365));
+      const validRulDays = isNaN(rulDays) || !isFinite(rulDays) ? 365 : rulDays;
+
       const maintenanceDate = new Date();
-      maintenanceDate.setDate(maintenanceDate.getDate() + rulDays);
+      maintenanceDate.setDate(maintenanceDate.getDate() + validRulDays);
 
       componentPredictions.push({
         type: 'Compressor',
         id: compressor._id,
         name: 'Main Air Compressor',
-        rulDays,
+        rulDays: validRulDays,
         failureProbability: failureProb,
         maintenanceDate: maintenanceDate.toISOString(),
         riskScore: Math.round(failureProb * 0.85),
         metrics: {
           pressure: compressor.pressure,
-          motorTemperature: compressor.motorTemperature,
-          runtimeHours: compressor.runtimeHours,
-          efficiency: compressor.efficiency,
+          motorTemperature: motorT,
+          runtimeHours: runtimeH,
+          efficiency,
         },
       });
     }
@@ -605,14 +625,16 @@ export class HardwareService {
       const isOffline = heartbeatDiff > 60;
       const failureProb = isOffline ? 95 : Math.min(99, Math.max(1, Math.round(heartbeatDiff / 5)));
       const rulDays = isOffline ? 1 : Math.max(1, Math.round((1 - failureProb / 100) * 365));
+      const validRulDays = isNaN(rulDays) || !isFinite(rulDays) ? 365 : rulDays;
+
       const maintenanceDate = new Date();
-      maintenanceDate.setDate(maintenanceDate.getDate() + rulDays);
+      maintenanceDate.setDate(maintenanceDate.getDate() + validRulDays);
 
       componentPredictions.push({
         type: 'Hub',
         id: hub._id,
         name: `Edge Gateway (Hub ${hub.hubId})`,
-        rulDays,
+        rulDays: validRulDays,
         failureProbability: failureProb,
         maintenanceDate: maintenanceDate.toISOString(),
         riskScore: Math.round(failureProb * 0.7),

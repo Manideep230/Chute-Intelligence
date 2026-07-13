@@ -112,7 +112,7 @@ export class HardwareController {
   // ── Status & Health Queries ─────────────────────────────────────────────
 
   @Get('status/:hubId')
-  @SkipThrottle()
+  @SkipThrottle({ default: true, otp: true, aiChat: true, blast: true })
   @ApiOperation({ summary: 'Get current status of a specific hub' })
   @ApiParam({ name: 'hubId', description: '16-digit hub hardware ID' })
   @ApiResponse({ status: 200, description: 'Hub status retrieved' })
@@ -122,7 +122,7 @@ export class HardwareController {
   }
 
   @Get('health/:hubId')
-  @SkipThrottle()
+  @SkipThrottle({ default: true, otp: true, aiChat: true, blast: true })
   @ApiOperation({ summary: 'Get health report for a specific hub' })
   @ApiParam({ name: 'hubId', description: '16-digit hub hardware ID' })
   @ApiResponse({ status: 200, description: 'Hub health retrieved' })
@@ -131,7 +131,7 @@ export class HardwareController {
   }
 
   @Get('telemetry/:hubId')
-  @SkipThrottle()
+  @SkipThrottle({ default: true, otp: true, aiChat: true, blast: true })
   @ApiOperation({ summary: 'Get recent telemetry for a hub' })
   @ApiParam({ name: 'hubId', description: '16-digit hub hardware ID' })
   @ApiResponse({ status: 200, description: 'Telemetry data retrieved' })
@@ -140,7 +140,7 @@ export class HardwareController {
   }
 
   @Get('commands/:chuteId')
-  @SkipThrottle()
+  @SkipThrottle({ default: true, otp: true, aiChat: true, blast: true })
   @ApiOperation({ summary: 'Get command history for a chute' })
   @ApiParam({ name: 'chuteId', description: 'Chute ObjectId' })
   @ApiResponse({ status: 200, description: 'Command history retrieved' })
@@ -149,7 +149,7 @@ export class HardwareController {
   }
 
   @Get('topology/:chuteId')
-  @SkipThrottle()
+  @SkipThrottle({ default: true, otp: true, aiChat: true, blast: true })
   @ApiOperation({ summary: 'Get full hardware topology for a chute' })
   @ApiParam({ name: 'chuteId', description: 'Chute ObjectId' })
   @ApiResponse({ status: 200, description: 'Full topology (cells, hubs, radars, SABs, solenoids, compressor)' })
@@ -160,7 +160,7 @@ export class HardwareController {
   // ── Configuration ───────────────────────────────────────────────────────
 
   @Get('config/:chuteId')
-  @SkipThrottle()
+  @SkipThrottle({ default: true, otp: true, aiChat: true, blast: true })
   @ApiOperation({ summary: 'Get SAB configuration for a chute (or global defaults)' })
   @ApiParam({ name: 'chuteId', description: 'Chute ObjectId (or "global" for defaults)' })
   @ApiResponse({ status: 200, description: 'Configuration retrieved' })
@@ -185,7 +185,7 @@ export class HardwareController {
   }
 
   @Get('inventory')
-  @SkipThrottle()
+  @SkipThrottle({ default: true, otp: true, aiChat: true, blast: true })
   @ApiOperation({ summary: 'Get complete device inventory' })
   @ApiResponse({ status: 200, description: 'Device inventory retrieved' })
   async getInventory() {
@@ -193,7 +193,7 @@ export class HardwareController {
   }
 
   @Get('predictive-maintenance/:chuteId')
-  @SkipThrottle()
+  @SkipThrottle({ default: true, otp: true, aiChat: true, blast: true })
   @ApiOperation({ summary: 'Get predictive maintenance report for all component types on a chute' })
   @ApiParam({ name: 'chuteId', description: 'Chute ObjectId' })
   @ApiResponse({ status: 200, description: 'Predictive health report retrieved' })
@@ -202,7 +202,7 @@ export class HardwareController {
   }
 
   @Get('replay/:chuteId')
-  @SkipThrottle()
+  @SkipThrottle({ default: true, otp: true, aiChat: true, blast: true })
   @ApiOperation({ summary: 'Get historical timeline events for playback replay' })
   @ApiParam({ name: 'chuteId', description: 'Chute ObjectId' })
   @ApiQuery({ name: 'start', description: 'Start Date ISO string' })

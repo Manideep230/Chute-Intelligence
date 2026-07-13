@@ -19,7 +19,7 @@ describe('ReportsController (e2e)', () => {
     // Authenticate
     const loginRes = await request(app.getHttpServer())
       .post('/auth/verify-otp')
-      .send({ phone: '+919999999999', otp: '123456' });
+      .send({ phone: '+919391888104', otp: '123456' });
     authToken = loginRes.body.accessToken;
 
     // Create a mock plant and chute first to link the report to
