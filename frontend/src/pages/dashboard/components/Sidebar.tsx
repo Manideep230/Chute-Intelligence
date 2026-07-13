@@ -30,16 +30,17 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
     <div className="glass-panel sidebar-container" style={{
       width: '240px',
       borderRight: `1px solid var(--border)`,
-      padding: '24px 0',
       display: 'flex',
       flexDirection: 'column',
-      gap: '8px',
       flexShrink: 0,
-      position: 'relative',
-      zIndex: 20
+      position: 'sticky',
+      top: 0,
+      zIndex: 20,
+      height: '100vh',
+      overflow: 'hidden',
     }}>
-      {/* Branded Logo */}
-      <div style={{ padding: '0 20px 24px', borderBottom: `1px solid var(--border-light)` }}>
+      {/* Branded Logo — pinned top */}
+      <div style={{ padding: '20px 20px 16px', borderBottom: `1px solid var(--border-light)`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: '18px' }}>🛰️</span>
           <div>
@@ -53,8 +54,8 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
         </div>
       </div>
 
-      {/* Navigation links */}
-      <div style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      {/* Navigation links — scrollable middle section */}
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
         {navItems.map(item => (
           <button
             key={item.id}
@@ -71,7 +72,8 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
               fontWeight: activeTab === item.id ? 700 : 500,
               fontSize: '12.5px',
               transition: 'all 0.2s ease',
-              textAlign: 'left'
+              textAlign: 'left',
+              flexShrink: 0,
             }}
             className={activeTab === item.id ? '' : 'glass-card'}
           >
@@ -81,8 +83,8 @@ export const Sidebar: React.FC<SidebarProps> = React.memo(({
         ))}
       </div>
 
-      {/* System status connection & User profile footer */}
-      <div style={{ marginTop: 'auto', padding: '16px 20px', borderTop: `1px solid var(--border-light)` }}>
+      {/* System status connection & User profile footer — pinned bottom */}
+      <div style={{ flexShrink: 0, padding: '16px 20px', borderTop: `1px solid var(--border-light)` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
           <div style={{
             width: 6, height: 6, borderRadius: '50%',
