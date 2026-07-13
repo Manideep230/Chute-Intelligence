@@ -3009,14 +3009,20 @@ export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: 
         <Canvas
           key={canvasKey}
           camera={{ position: [3.8, 2.2, 6.5], fov: 40 }}
-          gl={{ antialias: true, alpha: true }}
+          gl={{
+            antialias: true,
+            alpha: true,
+            powerPreference: 'low-power',
+            failIfMajorPerformanceCaveat: false,
+          }}
           style={{ background: twinBg }}
           onCreated={({ gl }) => {
             const canvas = gl.domElement;
+
             const handleContextLost = (e: Event) => {
               e.preventDefault();
-              console.warn('WebGL context lost on ChuteDigitalTwin — remounting');
-              
+              console.warn('WebGL context lost on ChuteDigitalTwin — waiting for browser recovery');
+
               const now = Date.now();
               const timeDiff = now - lastContextLossTimeRef.current;
               lastContextLossTimeRef.current = now;
@@ -3030,13 +3036,28 @@ export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: 
               if (contextLossCountRef.current > 3) {
                 console.error('Too many consecutive WebGL context losses — pausing 3D Digital Twin');
                 setIsContextLost(true);
-              } else {
-                setTimeout(() => {
-                  setCanvasKey(k => k + 1);
-                }, 500);
               }
+              // Do NOT remount here — wait for webglcontextrestored first.
+              // If the browser cannot restore, the user can reinitialise manually.
             };
+
+            const handleContextRestored = () => {
+              console.info('WebGL context restored on ChuteDigitalTwin — forcing re-render');
+              // Browser successfully restored the context; remount to re-initialise scene.
+              setTimeout(() => {
+                setCanvasKey(k => k + 1);
+              }, 300);
+            };
+
             canvas.addEventListener('webglcontextlost', handleContextLost, false);
+            canvas.addEventListener('webglcontextrestored', handleContextRestored, false);
+
+            // Dispose GL resources when this Canvas is unmounted to free the WebGL context slot.
+            return () => {
+              canvas.removeEventListener('webglcontextlost', handleContextLost);
+              canvas.removeEventListener('webglcontextrestored', handleContextRestored);
+              gl.dispose();
+            };
           }}
         >
 
