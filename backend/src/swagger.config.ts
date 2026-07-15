@@ -41,14 +41,15 @@ export function setupSwagger(app: INestApplication): void {
       'https://chute-intelligence.vercel.app',
       'support@nighatech.com',
     )
+    .addServer('/_/backend', 'Production Vercel Serverless')
+    .addServer('/', 'Local Development / Dev Proxy')
     .addBearerAuth(
       {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
         description:
-          'Enter the JWT token returned by POST /auth/verify-otp. ' +
-          'Format: Bearer <token>',
+          'Enter the JWT token returned by POST /auth/verify-otp (WITHOUT the "Bearer " prefix).',
       },
       'JWT',
     )
