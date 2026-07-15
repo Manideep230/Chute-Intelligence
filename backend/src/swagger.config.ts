@@ -51,7 +51,7 @@ export function setupSwagger(app: INestApplication): void {
         description:
           'Enter the JWT token returned by POST /auth/verify-otp (WITHOUT the "Bearer " prefix).',
       },
-      'JWT',
+      'bearer',
     )
     .addTag('Authentication', 'User registration, OTP login, session management, and role assignment')
     .addTag('Industrial Operations', 'Plants, chutes, radars, blasters, solenoids, compressors, telemetry, and fleet management')
