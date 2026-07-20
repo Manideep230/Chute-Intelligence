@@ -3143,7 +3143,7 @@ export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: 
               {/* Legacy MQTT-driven blockages */}
               {(() => {
                 const isZoneActive = (zoneIndex: number, path: 'LEFT_SLANT' | 'RIGHT_SLANT') =>
-                  path === 'LEFT_SLANT' ? (zoneIndex === 1 || zoneIndex === 2) : (zoneIndex === 0 || zoneIndex === 3);
+                  path === 'LEFT_SLANT' ? (zoneIndex === 0 || zoneIndex === 3) : (zoneIndex === 1 || zoneIndex === 2);
                 return radars.map((r, i) => (
                   <BlockageMass key={i} zone={i} active={r.buildupDetected && isZoneActive(i, currentActivePath)} viewMode={viewMode} />
                 ));

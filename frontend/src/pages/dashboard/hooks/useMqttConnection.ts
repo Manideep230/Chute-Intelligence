@@ -134,10 +134,11 @@ export function useMqttConnection(activeChuteId: string | null) {
             setActiveBlasterNumber(data.blasterNumber || data.sabNumber || 1);
             setActiveSolenoidValves(data.solenoidValves || data.solenoidNumbers || []);
 
+            const animDuration = data.blastDurationMs || 2500;
             setTimeout(() => {
               setActiveBlasterNumber(null);
               setActiveSolenoidValves([]);
-            }, 2500);
+            }, animDuration);
           }
           // Refresh commands list live when command status updates
           const currentToken = useAuthStore.getState().token;
