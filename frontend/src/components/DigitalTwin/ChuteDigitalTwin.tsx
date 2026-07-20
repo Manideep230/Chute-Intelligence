@@ -2551,9 +2551,6 @@ export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: 
     });
   }, [clearDevBlockages, updateStatus, setDemoKpis, startDemo, currentActivePath, addDevBlockage, fireBlast, nearestSolenoidGroup, updateDevBlockage]);
 
-  // Drawer state
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
   // Toast events state
   const [events, setEvents] = useState<{ id: string; message: string; type: 'info' | 'warning' | 'alert' | 'success' }[]>([]);
 
@@ -2630,330 +2627,146 @@ export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: 
   const valveB = solenoidSelection.blasterNumber ? solenoidSelection.blasterNumber * 2 : 2;
 
   return (
-    <div style={{ width: '100%', height: '100%', position: 'relative', background: twinBg, overflow: 'hidden', cursor: devBlocking.pendingPlacement ? 'crosshair' : 'default', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'row', background: twinBg, overflow: 'hidden', cursor: devBlocking.pendingPlacement ? 'crosshair' : 'default', fontFamily: "'Inter', sans-serif" }}>
 
-      {/* VIEWPORT TOP BAR — Minimal & Professional SCADA Controls */}
-      <div style={{ position: 'absolute', top: 12, left: 12, right: 12, zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', pointerEvents: 'none' }}>
-        
-        {/* Left Side: System title / Feed source info */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: overlayBg, border: `1px solid ${overlayBorder}`, padding: '6px 12px', borderRadius: '6px', pointerEvents: 'auto' }}>
+      {/* ─── LEFT MAIN VIEWPORT: 3D CANVAS & SCADA STATUS BAR ───────────────── */}
+      <div style={{ flex: 1, height: '100%', position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+        {/* VIEWPORT TOP BAR — Minimal Feed Point Info */}
+        <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10, display: 'flex', alignItems: 'center', gap: '10px', background: overlayBg, border: `1px solid ${overlayBorder}`, padding: '6px 12px', borderRadius: '6px', pointerEvents: 'auto' }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block', boxShadow: '0 0 6px #10b981' }} />
           <span style={{ fontSize: '11px', fontWeight: 700, color: overlayText, letterSpacing: '0.5px' }}>FEED POINT ACTIVE // CHUTE X-01</span>
         </div>
 
-        {/* Right Side: View Mode, Presets, and Settings Gear */}
-        <div style={{ display: 'flex', gap: '6px', pointerEvents: 'auto' }}>
-          {/* Preset Camera Views */}
-          <div style={{ display: 'flex', gap: '3px', background: btnBg, border: `1px solid ${overlayBorder}`, padding: '3px', borderRadius: '6px' }}>
-            {(['front', 'left', 'right', 'top'] as const).map((preset) => (
-              <button
-                key={preset}
-                onClick={() => {
-                  setCameraPreset(preset);
-                  setTimeout(() => setCameraPreset(null), 1500);
-                }}
-                style={{
-                  padding: '3px 8px', fontSize: '9px', fontWeight: 600, textTransform: 'uppercase',
-                  background: cameraPreset === preset ? btnActive : 'transparent',
-                  color: cameraPreset === preset ? '#fff' : overlayText,
-                  border: 'none', borderRadius: '4px', cursor: 'pointer', transition: 'all 100ms ease'
-                }}
-              >
-                {preset}
+        {/* TOAST NOTIFICATION CONTAINER — Temporary Event Callouts */}
+        <div style={{ position: 'absolute', top: 52, left: 12, zIndex: 10, display: 'flex', flexDirection: 'column', gap: '6px', width: 280, pointerEvents: 'none' }}>
+          {events.map(ev => (
+            <div
+              key={ev.id}
+              style={{
+                padding: '8px 12px', background: isDark ? '#1e293b' : '#ffffff',
+                borderLeft: `4px solid ${ev.type === 'success' ? '#10B981' : ev.type === 'warning' ? '#F59E0B' : ev.type === 'alert' ? '#EF4444' : '#3B82F6'}`,
+                borderRadius: '0 6px 6px 0', borderTop: `1px solid ${overlayBorder}`, borderRight: `1px solid ${overlayBorder}`, borderBottom: `1px solid ${overlayBorder}`,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.12)', fontFamily: "'JetBrains Mono', monospace", fontSize: '9px',
+                color: overlayText, animation: 'demoSlide 0.2s ease', display: 'flex', gap: '8px', alignItems: 'center', pointerEvents: 'auto'
+              }}
+            >
+              <span style={{ fontSize: '11px' }}>
+                {ev.type === 'success' ? '✓' : ev.type === 'warning' ? '⚠' : ev.type === 'alert' ? '🚨' : 'ℹ'}
+              </span>
+              <div>{ev.message}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* CLIENT DEMO NARRATION BANNER */}
+        {demo.running && (
+          <div style={{
+            position: 'absolute', top: 52, left: '50%', transform: 'translateX(-50%)', zIndex: 15,
+            fontFamily: "'JetBrains Mono', monospace", background: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+            border: `1px solid ${overlayBorder}`, borderTop: '3px solid #f97316', borderRadius: '6px',
+            padding: '10px 18px', width: '90%', maxWidth: 440, textAlign: 'center',
+            backdropFilter: 'blur(10px)', animation: 'demoSlide 0.3s ease',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.15)'
+          }}>
+            <div style={{ fontSize: '8px', color: '#f97316', letterSpacing: '1px', fontWeight: 700, marginBottom: '4px' }}>NIGHA AUTONOMOUS BLAST LIFECYCLE DEMO</div>
+            <div style={{ fontSize: '10.5px', color: overlayText, lineHeight: 1.4, marginBottom: '8px', fontWeight: 600 }}>{demo.stepLabel}</div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '6px' }}>
+              <button onClick={demo.paused ? resumeDemo : pauseDemo} style={{ padding: '3px 8px', fontSize: '9px', background: 'transparent', color: '#0284c7', border: '1px solid #0284c7', borderRadius: '4px', cursor: 'pointer' }}>
+                {demo.paused ? '▶ Resume' : '⏸ Pause'}
               </button>
-            ))}
-          </div>
-
-          {/* Settings Drawer Button */}
-          <button
-            onClick={() => setDrawerOpen(!drawerOpen)}
-            style={{
-              padding: '6px 12px', fontSize: '10px', fontWeight: 700,
-              background: drawerOpen ? btnActive : btnBg,
-              color: drawerOpen ? '#fff' : overlayText,
-              border: `1px solid ${overlayBorder}`, borderRadius: '6px', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 150ms ease'
-            }}
-          >
-            ⚙ {drawerOpen ? 'CLOSE CONTROLS' : 'SIMULATION CONTROLS'}
-          </button>
-        </div>
-      </div>
-
-      {/* TOAST NOTIFICATION CONTAINER — Temporary Event Callouts */}
-      <div style={{ position: 'absolute', top: 54, left: 12, zIndex: 10, display: 'flex', flexDirection: 'column', gap: '6px', width: 280, pointerEvents: 'none' }}>
-        {events.map(ev => (
-          <div
-            key={ev.id}
-            style={{
-              padding: '8px 12px', background: isDark ? '#1e293b' : '#ffffff',
-              borderLeft: `4px solid ${ev.type === 'success' ? '#10B981' : ev.type === 'warning' ? '#F59E0B' : ev.type === 'alert' ? '#EF4444' : '#3B82F6'}`,
-              borderRadius: '0 6px 6px 0', borderTop: `1px solid ${overlayBorder}`, borderRight: `1px solid ${overlayBorder}`, borderBottom: `1px solid ${overlayBorder}`,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.12)', fontFamily: "'JetBrains Mono', monospace", fontSize: '9px',
-              color: overlayText, animation: 'demoSlide 0.2s ease', display: 'flex', gap: '8px', alignItems: 'center', pointerEvents: 'auto'
-            }}
-          >
-            <span style={{ fontSize: '11px' }}>
-              {ev.type === 'success' ? '✓' : ev.type === 'warning' ? '⚠' : ev.type === 'alert' ? '🚨' : 'ℹ'}
-            </span>
-            <div>{ev.message}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* COLLAPSIBLE SIDE DRAWER — Control Panel & Selected Components details */}
-      <div
-        style={{
-          position: 'absolute', top: 0, right: 0, bottom: 0, width: 320, zIndex: 20,
-          background: overlayBg, borderLeft: `1px solid ${overlayBorder}`,
-          boxShadow: '-4px 0 20px rgba(0,0,0,0.15)', transform: drawerOpen ? 'translateX(0)' : 'translateX(100%)',
-          transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)', padding: '60px 16px 16px 16px',
-          display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', pointerEvents: 'auto'
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${overlayBorder}`, paddingBottom: '8px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 800, color: overlayText }}>SYSTEM UTILITIES</span>
-          <button onClick={() => setDrawerOpen(false)} style={{ background: 'transparent', border: 'none', color: overlayMuted, cursor: 'pointer', fontSize: '12px' }}>✕</button>
-        </div>
-
-        {/* Component Selector Details (Asset drawer) */}
-        {solenoidSelection.blasterNumber !== null ? (
-          <div style={{ padding: '12px', background: isDark ? '#1e293b' : '#f1f5f9', borderRadius: '6px', border: `1px solid ${overlayBorder}` }}>
-            <h4 style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#EA580C', fontWeight: 800 }}>SMART AIR BLASTER B{solenoidSelection.blasterNumber}</h4>
-            <div style={{ fontSize: '10px', color: overlayText, lineHeight: '1.6', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-              <div>Asset ID:</div><div style={{ fontWeight: 'bold' }}>SAB-00{solenoidSelection.blasterNumber}</div>
-              <div>Health Score:</div><div style={{ color: '#10b981', fontWeight: 'bold' }}>{blasters.find((b: any) => b.blasterNumber === solenoidSelection.blasterNumber)?.healthScore ?? 100}%</div>
-              <div>Operating Valv:</div><div>SV{valveA}, SV{valveB}</div>
-              <div>Blast Radius:</div><div>{solenoidSelection.blastRadius.toFixed(1)}m</div>
+              <button onClick={stopDemo} style={{ padding: '3px 8px', fontSize: '9px', background: 'transparent', color: overlayMuted, border: `1px solid ${overlayBorder}`, borderRadius: '4px', cursor: 'pointer' }}>
+                ✕ Terminate
+              </button>
             </div>
-            {!blast.active && (
-              <div style={{ display: 'flex', gap: '6px', marginTop: '12px' }}>
-                <button onClick={handleConfirmBlast} style={{ flex: 1, padding: '6px 10px', background: '#EA580C', border: 'none', borderRadius: '4px', color: '#fff', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}>
-                  🚀 TRIGGER BLAST
-                </button>
-                <button onClick={deselectSolenoid} style={{ padding: '6px 10px', background: 'transparent', border: `1px solid ${overlayBorder}`, borderRadius: '4px', color: overlayMuted, fontSize: '10px', cursor: 'pointer' }}>
-                  Cancel
-                </button>
-              </div>
-            )}
-          </div>
-        ) : selectedBlockageId ? (
-          <div style={{ padding: '12px', background: isDark ? '#1e293b' : '#f1f5f9', borderRadius: '6px', border: `1px solid ${overlayBorder}` }}>
-            <h4 style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#EF4444', fontWeight: 800 }}>ACTIVE BLOCKAGE</h4>
-            <div style={{ fontSize: '10px', color: overlayText, lineHeight: '1.6', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-              <div>Blockage ID:</div><div style={{ fontFamily: 'monospace' }}>{selectedBlockageId.slice(0, 8)}</div>
-              <div>Severity Level:</div><div style={{ textTransform: 'uppercase', color: '#f59e0b', fontWeight: 'bold' }}>{devBlockages.find(b => b.id === selectedBlockageId)?.severity}</div>
-              <div>Centerline Pos:</div><div>{devBlockages.find(b => b.id === selectedBlockageId)?.normalizedT.toFixed(2)} T</div>
-            </div>
-          </div>
-        ) : (
-          <div style={{ padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: `1px dashed ${overlayBorder}`, textAlign: 'center', fontSize: '10px', color: overlayMuted }}>
-            Click on any Blaster or Blockage in the 3D scene to inspect Asset details here.
           </div>
         )}
 
-        {/* Manual Simulation Controls */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: `1px solid ${overlayBorder}`, paddingTop: '14px' }}>
-          <div style={{ fontSize: '10px', fontWeight: 800, color: overlayText, textTransform: 'uppercase' }}>Simulation Utilities</div>
-          
-          {/* Mode toggle */}
-          <button
-            onClick={() => handleToggleSimulationMode(!simulationMode)}
-            style={{
-              padding: '8px', fontSize: '10px', fontWeight: 700,
-              background: simulationMode ? '#EA580C' : '#10B981',
-              color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'
-            }}
-          >
-            {simulationMode ? '⚠ RETREAT TO PROD MODE' : '⚙ ENGAGE SIMULATION'}
-          </button>
+        {/* COMPACT BOTTOM STATUS BAR — SCADA CONTROL PANEL */}
+        <div
+          style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, height: 42, zIndex: 10,
+            background: overlayBg, borderTop: `1px solid ${overlayBorder}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px',
+            fontFamily: "'JetBrains Mono', monospace", pointerEvents: 'auto'
+          }}
+        >
+          {/* Connection & Mode status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {/* Connection */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: isMqttConnected ? '#10b981' : '#ef4444', display: 'inline-block' }} />
+              <span style={{ fontSize: '10px', color: overlayText, fontWeight: 700 }}>{isMqttConnected ? 'MQTT ONLINE' : 'MQTT OFFLINE'}</span>
+            </div>
 
-          {simulationMode && (
-            <>
-              {/* Slant path selector */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '10px', color: overlayMuted }}>Active Slant:</span>
-                <button
-                  onClick={() => setActivePath(activePath === 'LEFT_SLANT' ? 'RIGHT_SLANT' : 'LEFT_SLANT')}
-                  style={{ padding: '4px 8px', fontSize: '9px', fontWeight: 600, background: btnBg, border: `1px solid ${overlayBorder}`, color: overlayText, borderRadius: '4px', cursor: 'pointer' }}
-                >
-                  {activePath === 'LEFT_SLANT' ? 'LEFT (\\)' : 'RIGHT (/)'}
-                </button>
-              </div>
+            <div style={{ width: 1, height: 16, background: overlayBorder }} />
 
-              {/* Flow Active toggle */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '10px', color: overlayMuted }}>Material Feed:</span>
-                <button
-                  onClick={() => setFlowActive(!flowActive)}
-                  style={{ padding: '4px 8px', fontSize: '9px', fontWeight: 600, background: flowActive ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)', border: `1px solid ${flowActive ? '#10b981' : '#ef4444'}`, color: flowActive ? '#10b981' : '#ef4444', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                  {flowActive ? '▶ FLOW RUNNING' : '⏸ FLOW PAUSED'}
-                </button>
-              </div>
-
-              {/* Blockage injector */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)', padding: '8px', borderRadius: '6px', border: `1px solid ${overlayBorder}` }}>
-                <div style={{ fontSize: '9px', color: overlayMuted, fontWeight: 600 }}>INJECT BLOCKAGE PRESET</div>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  {(['small', 'medium', 'large'] as BlockingSeverity[]).map(sev => (
-                    <button key={sev} onClick={() => setSeverity(sev)} style={{ flex: 1, padding: '3px', fontSize: '8px', fontWeight: 700, background: devBlocking.severity === sev ? '#EA580C' : 'transparent', color: devBlocking.severity === sev ? '#fff' : overlayMuted, border: `1px solid ${devBlocking.severity === sev ? '#EA580C' : overlayBorder}`, borderRadius: '4px', cursor: 'pointer', textTransform: 'uppercase' }}>
-                      {sev}
-                    </button>
-                  ))}
-                </div>
-                <button onClick={() => devBlocking.pendingPlacement ? disableBlockingMode() : enableBlockingMode(devBlocking.severity)} style={{ width: '100%', padding: '6px', fontSize: '10px', fontWeight: 700, background: devBlocking.pendingPlacement ? '#ef4444' : btnBg, color: devBlocking.pendingPlacement ? '#fff' : overlayText, border: `1px solid ${devBlocking.pendingPlacement ? '#ef4444' : overlayBorder}`, borderRadius: '4px', cursor: 'pointer', marginTop: '2px' }}>
-                  {devBlocking.pendingPlacement ? '✕ Cancel Injector' : '+ Click Slant to Inject'}
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* Client Demo trigger */}
-          <button
-            onClick={demo.running ? stopDemo : handleStartDemo}
-            style={{ padding: '8px', fontSize: '10px', fontWeight: 700, background: demo.running ? '#ef4444' : 'linear-gradient(135deg, #f97316, #ea580c)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '10px' }}
-          >
-            {demo.running ? '⏹ TERMINATE DEMO' : '🎬 START SCADA DEMO'}
-          </button>
-        </div>
-
-        {/* Debug diagnostics toggle */}
-        <div style={{ borderTop: `1px solid ${overlayBorder}`, paddingTop: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '10px', color: overlayMuted }}>Debug Mode overlay:</span>
-          <button onClick={() => setDebugMode(!debugMode)} style={{ padding: '3px 8px', fontSize: '8px', fontWeight: 700, background: debugMode ? '#0284c7' : 'transparent', color: debugMode ? '#fff' : overlayMuted, border: `1px solid ${debugMode ? '#0284c7' : overlayBorder}`, borderRadius: '4px', cursor: 'pointer' }}>
-            {debugMode ? 'ACTIVE' : 'INACTIVE'}
-          </button>
-        </div>
-      </div>
-
-      {/* CLIENT DEMO NARRATION BANNER */}
-      {demo.running && (
-        <div style={{
-          position: 'absolute', top: 54, left: '50%', transform: 'translateX(-50%)', zIndex: 15,
-          fontFamily: "'JetBrains Mono', monospace", background: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-          border: `1px solid ${overlayBorder}`, borderTop: '3px solid #f97316', borderRadius: '6px',
-          padding: '10px 18px', width: '90%', maxWidth: 440, textAlign: 'center',
-          backdropFilter: 'blur(10px)', animation: 'demoSlide 0.3s ease',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.15)'
-        }}>
-          <div style={{ fontSize: '8px', color: '#f97316', letterSpacing: '1px', fontWeight: 700, marginBottom: '4px' }}>NIGHA AUTONOMOUS BLAST LIFECYCLE DEMO</div>
-          <div style={{ fontSize: '10.5px', color: overlayText, lineHeight: 1.4, marginBottom: '8px', fontWeight: 600 }}>{demo.stepLabel}</div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '6px' }}>
-            <button onClick={demo.paused ? resumeDemo : pauseDemo} style={{ padding: '3px 8px', fontSize: '9px', background: 'transparent', color: '#0284c7', border: '1px solid #0284c7', borderRadius: '4px', cursor: 'pointer' }}>
-              {demo.paused ? '▶ Resume' : '⏸ Pause'}
-            </button>
-            <button onClick={stopDemo} style={{ padding: '3px 8px', fontSize: '9px', background: 'transparent', color: overlayMuted, border: `1px solid ${overlayBorder}`, borderRadius: '4px', cursor: 'pointer' }}>
-              ✕ Terminate
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* COMPACT BOTTOM STATUS BAR — SCADA CONTROL PANEL */}
-      <div
-        style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: 42, zIndex: 10,
-          background: overlayBg, borderTop: `1px solid ${overlayBorder}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px',
-          fontFamily: "'JetBrains Mono', monospace", pointerEvents: 'auto'
-        }}
-      >
-        {/* Connection & Mode status */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          {/* Connection */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: isMqttConnected ? '#10b981' : '#ef4444', display: 'inline-block' }} />
-            <span style={{ fontSize: '10px', color: overlayText, fontWeight: 700 }}>{isMqttConnected ? 'MQTT ONLINE' : 'MQTT OFFLINE'}</span>
-          </div>
-
-          <div style={{ width: 1, height: 16, background: overlayBorder }} />
-
-          {/* Mode */}
-          <span style={{ fontSize: '10px', fontWeight: 800, color: simulationMode ? '#EA580C' : '#10B981' }}>
-            {simulationMode ? 'MANUAL SIM' : 'PROD MODE'}
-          </span>
-        </div>
-
-        {/* Middle Indicators: Progress bars for Flow, Pressure, AI Prediction, Health */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1, justifyContent: 'center', maxWidth: '65%' }}>
-          
-          {/* Chute Status */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '9px', color: overlayMuted }}>STATUS:</span>
-            <span style={{
-              fontSize: '10px', fontWeight: 800,
-              color: chuteStatus === 'Normal' ? '#10b981' : chuteStatus === 'Buildup' ? '#f59e0b' : chuteStatus === 'Blasting' ? '#3b82f6' : '#ef4444'
-            }}>
-              {chuteStatus.toUpperCase()}
+            {/* Mode */}
+            <span style={{ fontSize: '10px', fontWeight: 800, color: simulationMode ? '#EA580C' : '#10B981' }}>
+              {simulationMode ? 'MANUAL SIM' : 'PROD MODE'}
             </span>
           </div>
 
-          <div style={{ width: 1, height: 12, background: overlayBorder }} />
-
-          {/* Flow Rate */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '22%' }}>
-            <span style={{ fontSize: '9px', color: overlayMuted }}>FLOW:</span>
-            <div style={{ flex: 1, height: 6, background: isDark ? '#334155' : '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-              <div style={{ width: `${flowPercentage}%`, height: '100%', background: flowPercentage > 50 ? '#10b981' : flowPercentage > 0 ? '#f59e0b' : '#ef4444', transition: 'width 0.3s ease' }} />
+          {/* Middle Indicators: Progress bars for Flow, Pressure, AI Prediction, Health */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1, justifyContent: 'center', maxWidth: '65%' }}>
+            
+            {/* Chute Status */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '9px', color: overlayMuted }}>STATUS:</span>
+              <span style={{
+                fontSize: '10px', fontWeight: 800,
+                color: chuteStatus === 'Normal' ? '#10b981' : chuteStatus === 'Buildup' ? '#f59e0b' : chuteStatus === 'Blasting' ? '#3b82f6' : '#ef4444'
+              }}>
+                {chuteStatus.toUpperCase()}
+              </span>
             </div>
-            <span style={{ fontSize: '9.5px', color: overlayText, fontWeight: 'bold' }}>{flowPercentage}%</span>
-          </div>
 
-          {/* Compressor Pressure */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '22%' }}>
-            <span style={{ fontSize: '9px', color: overlayMuted }}>PRES:</span>
-            <div style={{ flex: 1, height: 6, background: isDark ? '#334155' : '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-              <div style={{ width: `${pressurePercentage}%`, height: '100%', background: pressure > 105 ? '#ef4444' : pressure > 80 ? '#10b981' : '#f59e0b', transition: 'width 0.3s ease' }} />
-            </div>
-            <span style={{ fontSize: '9.5px', color: overlayText, fontWeight: 'bold' }}>{pressure.toFixed(0)} PSI</span>
-          </div>
+            <div style={{ width: 1, height: 12, background: overlayBorder }} />
 
-          {/* AI blockage probability */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '22%' }}>
-            <span style={{ fontSize: '9px', color: overlayMuted }}>AI PRED:</span>
-            <div style={{ flex: 1, height: 6, background: isDark ? '#334155' : '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-              <div style={{ width: `${predictionPercentage}%`, height: '100%', background: predictionPercentage > 60 ? '#ef4444' : predictionPercentage > 30 ? '#f59e0b' : '#10b981', transition: 'width 0.3s ease' }} />
+            {/* Flow Rate */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '22%' }}>
+              <span style={{ fontSize: '9px', color: overlayMuted }}>FLOW:</span>
+              <div style={{ flex: 1, height: 6, background: isDark ? '#334155' : '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                <div style={{ width: `${flowPercentage}%`, height: '100%', background: flowPercentage > 50 ? '#10b981' : flowPercentage > 0 ? '#f59e0b' : '#ef4444', transition: 'width 0.3s ease' }} />
+              </div>
+              <span style={{ fontSize: '9.5px', color: overlayText, fontWeight: 'bold' }}>{flowPercentage}%</span>
             </div>
-            <span style={{ fontSize: '9.5px', color: overlayText, fontWeight: 'bold' }}>{predictionPercentage}%</span>
-          </div>
 
-          {/* System Health */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '22%' }}>
-            <span style={{ fontSize: '9px', color: overlayMuted }}>HEALTH:</span>
-            <div style={{ flex: 1, height: 6, background: isDark ? '#334155' : '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-              <div style={{ width: `${avgHealth}%`, height: '100%', background: avgHealth > 75 ? '#10b981' : avgHealth > 45 ? '#f59e0b' : '#ef4444', transition: 'width 0.3s ease' }} />
+            {/* Compressor Pressure */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '22%' }}>
+              <span style={{ fontSize: '9px', color: overlayMuted }}>PRES:</span>
+              <div style={{ flex: 1, height: 6, background: isDark ? '#334155' : '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                <div style={{ width: `${pressurePercentage}%`, height: '100%', background: pressure > 105 ? '#ef4444' : pressure > 80 ? '#10b981' : '#f59e0b', transition: 'width 0.3s ease' }} />
+              </div>
+              <span style={{ fontSize: '9.5px', color: overlayText, fontWeight: 'bold' }}>{pressure.toFixed(0)} PSI</span>
             </div>
-            <span style={{ fontSize: '9.5px', color: overlayText, fontWeight: 'bold' }}>{avgHealth}%</span>
+
+            {/* AI blockage probability */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '22%' }}>
+              <span style={{ fontSize: '9px', color: overlayMuted }}>AI PRED:</span>
+              <div style={{ flex: 1, height: 6, background: isDark ? '#334155' : '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                <div style={{ width: `${predictionPercentage}%`, height: '100%', background: predictionPercentage > 60 ? '#ef4444' : predictionPercentage > 30 ? '#f59e0b' : '#10b981', transition: 'width 0.3s ease' }} />
+              </div>
+              <span style={{ fontSize: '9.5px', color: overlayText, fontWeight: 'bold' }}>{predictionPercentage}%</span>
+            </div>
+
+            {/* System Health */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '22%' }}>
+              <span style={{ fontSize: '9px', color: overlayMuted }}>HEALTH:</span>
+              <div style={{ flex: 1, height: 6, background: isDark ? '#334155' : '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                <div style={{ width: `${avgHealth}%`, height: '100%', background: avgHealth > 75 ? '#10b981' : avgHealth > 45 ? '#f59e0b' : '#ef4444', transition: 'width 0.3s ease' }} />
+              </div>
+              <span style={{ fontSize: '9.5px', color: overlayText, fontWeight: 'bold' }}>{avgHealth}%</span>
+            </div>
           </div>
         </div>
 
-        {/* Right Section: View Mode toggle dropdown */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '9px', color: overlayMuted }}>VIEW:</span>
-          <select
-            value={viewMode}
-            onChange={(e) => setViewMode(e.target.value as any)}
-            style={{
-              padding: '2px 8px', fontSize: '9.5px', fontWeight: 700, fontFamily: 'inherit',
-              background: btnBg, color: overlayText, border: `1px solid ${overlayBorder}`,
-              borderRadius: '4px', cursor: 'pointer', outline: 'none'
-            }}
-          >
-            <option value="cutaway">Cutaway</option>
-            <option value="operator">Operator (Solid)</option>
-            <option value="transparent">Transparent</option>
-            <option value="maintenance">Maintenance</option>
-          </select>
+        <style>{`@keyframes demoSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
+
+        {/* Camera hint */}
+        <div style={{ position: 'absolute', bottom: 50, right: 14, zIndex: 10, fontSize: '9px', color: overlayMuted, fontFamily: "'Inter',sans-serif", letterSpacing: '0.3px', pointerEvents: 'none' }}>
+          Drag · Scroll · Right-drag
         </div>
-      </div>
-
-      <style>{`@keyframes demoSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
-
-      {/* Camera hint */}
-      <div style={{ position: 'absolute', bottom: 50, right: 14, zIndex: 10, fontSize: '9px', color: overlayMuted, fontFamily: "'Inter',sans-serif", letterSpacing: '0.3px' }}>
-        Drag · Scroll · Right-drag
-      </div>
 
       {/* ─── THREE.JS CANVAS ──────────────────────────────────────────────── */}
       {/* ─── THREE.JS CANVAS ──────────────────────────────────────────────── */}
@@ -3195,6 +3008,177 @@ export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: 
           />
         </Canvas>
       )}
+      </div>
+
+      {/* ─── RIGHT DEDICATED CONTROL PANEL: ALL DIGITAL TWIN OPTIONS ────────── */}
+      <div
+        style={{
+          width: '280px', minWidth: '250px', height: '100%', zIndex: 20,
+          background: overlayBg, borderLeft: `1px solid ${overlayBorder}`,
+          padding: '14px', display: 'flex', flexDirection: 'column', gap: '14px',
+          overflowY: 'auto', pointerEvents: 'auto', flexShrink: 0
+        }}
+      >
+        {/* Panel Title & View Mode selector */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderBottom: `1px solid ${overlayBorder}`, paddingBottom: '10px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 800, color: overlayText, letterSpacing: '0.8px' }}>TWIN CONTROL PANEL</span>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '10px', color: overlayMuted }}>View Mode:</span>
+            <select
+              value={viewMode}
+              onChange={(e) => setViewMode(e.target.value as any)}
+              style={{
+                padding: '3px 8px', fontSize: '9.5px', fontWeight: 700, fontFamily: 'inherit',
+                background: btnBg, color: overlayText, border: `1px solid ${overlayBorder}`,
+                borderRadius: '4px', cursor: 'pointer', outline: 'none'
+              }}
+            >
+              <option value="cutaway">Cutaway</option>
+              <option value="operator">Operator (Solid)</option>
+              <option value="transparent">Transparent</option>
+              <option value="maintenance">Maintenance</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Camera View Angle Presets */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <span style={{ fontSize: '9px', fontWeight: 700, color: overlayMuted, textTransform: 'uppercase' }}>Camera View Angle</span>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+            {(['front', 'left', 'right', 'top'] as const).map((preset) => (
+              <button
+                key={preset}
+                onClick={() => {
+                  setCameraPreset(preset);
+                  setTimeout(() => setCameraPreset(null), 1500);
+                }}
+                style={{
+                  padding: '5px 8px', fontSize: '9.5px', fontWeight: 700, textTransform: 'uppercase',
+                  background: cameraPreset === preset ? btnActive : btnBg,
+                  color: cameraPreset === preset ? '#fff' : overlayText,
+                  border: `1px solid ${cameraPreset === preset ? btnActive : overlayBorder}`, borderRadius: '4px', cursor: 'pointer', transition: 'all 100ms ease'
+                }}
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Component Selector Details (Asset Inspector) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <span style={{ fontSize: '9px', fontWeight: 700, color: overlayMuted, textTransform: 'uppercase' }}>Asset Inspector</span>
+          {solenoidSelection.blasterNumber !== null ? (
+            <div style={{ padding: '10px', background: isDark ? '#1e293b' : '#f1f5f9', borderRadius: '6px', border: `1px solid ${overlayBorder}` }}>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#EA580C', fontWeight: 800 }}>SMART AIR BLASTER B{solenoidSelection.blasterNumber}</h4>
+              <div style={{ fontSize: '10px', color: overlayText, lineHeight: '1.6', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                <div>Asset ID:</div><div style={{ fontWeight: 'bold' }}>SAB-00{solenoidSelection.blasterNumber}</div>
+                <div>Health Score:</div><div style={{ color: '#10b981', fontWeight: 'bold' }}>{blasters.find((b: any) => b.blasterNumber === solenoidSelection.blasterNumber)?.healthScore ?? 100}%</div>
+                <div>Operating Valv:</div><div>SV{valveA}, SV{valveB}</div>
+                <div>Blast Radius:</div><div>{solenoidSelection.blastRadius.toFixed(1)}m</div>
+              </div>
+              {!blast.active && (
+                <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
+                  <button onClick={handleConfirmBlast} style={{ flex: 1, padding: '6px 10px', background: '#EA580C', border: 'none', borderRadius: '4px', color: '#fff', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}>
+                    🚀 TRIGGER BLAST
+                  </button>
+                  <button onClick={deselectSolenoid} style={{ padding: '6px 10px', background: 'transparent', border: `1px solid ${overlayBorder}`, borderRadius: '4px', color: overlayMuted, fontSize: '10px', cursor: 'pointer' }}>
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : selectedBlockageId ? (
+            <div style={{ padding: '10px', background: isDark ? '#1e293b' : '#f1f5f9', borderRadius: '6px', border: `1px solid ${overlayBorder}` }}>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#EF4444', fontWeight: 800 }}>ACTIVE BLOCKAGE</h4>
+              <div style={{ fontSize: '10px', color: overlayText, lineHeight: '1.6', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                <div>Blockage ID:</div><div style={{ fontFamily: 'monospace' }}>{selectedBlockageId.slice(0, 8)}</div>
+                <div>Severity Level:</div><div style={{ textTransform: 'uppercase', color: '#f59e0b', fontWeight: 'bold' }}>{devBlockages.find(b => b.id === selectedBlockageId)?.severity}</div>
+                <div>Centerline Pos:</div><div>{devBlockages.find(b => b.id === selectedBlockageId)?.normalizedT.toFixed(2)} T</div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: `1px dashed ${overlayBorder}`, textAlign: 'center', fontSize: '9.5px', color: overlayMuted }}>
+              Click on any Blaster or Blockage in the 3D scene to inspect details here.
+            </div>
+          )}
+        </div>
+
+        {/* Manual Simulation Controls */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: `1px solid ${overlayBorder}`, paddingTop: '12px' }}>
+          <div style={{ fontSize: '9px', fontWeight: 800, color: overlayText, textTransform: 'uppercase' }}>Simulation Utilities</div>
+          
+          {/* Mode toggle */}
+          <button
+            onClick={() => handleToggleSimulationMode(!simulationMode)}
+            style={{
+              padding: '7px', fontSize: '10px', fontWeight: 700,
+              background: simulationMode ? '#EA580C' : '#10B981',
+              color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer'
+            }}
+          >
+            {simulationMode ? '⚠ RETREAT TO PROD MODE' : '⚙ ENGAGE SIMULATION'}
+          </button>
+
+          {simulationMode && (
+            <>
+              {/* Slant path selector */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '10px', color: overlayMuted }}>Active Slant:</span>
+                <button
+                  onClick={() => setActivePath(activePath === 'LEFT_SLANT' ? 'RIGHT_SLANT' : 'LEFT_SLANT')}
+                  style={{ padding: '4px 8px', fontSize: '9px', fontWeight: 600, background: btnBg, border: `1px solid ${overlayBorder}`, color: overlayText, borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  {activePath === 'LEFT_SLANT' ? 'LEFT (\\)' : 'RIGHT (/)'}
+                </button>
+              </div>
+
+              {/* Flow Active toggle */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '10px', color: overlayMuted }}>Material Feed:</span>
+                <button
+                  onClick={() => setFlowActive(!flowActive)}
+                  style={{ padding: '4px 8px', fontSize: '9px', fontWeight: 600, background: flowActive ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)', border: `1px solid ${flowActive ? '#10b981' : '#ef4444'}`, color: flowActive ? '#10b981' : '#ef4444', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  {flowActive ? '▶ FLOW RUNNING' : '⏸ FLOW PAUSED'}
+                </button>
+              </div>
+
+              {/* Blockage injector */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)', padding: '8px', borderRadius: '6px', border: `1px solid ${overlayBorder}` }}>
+                <div style={{ fontSize: '9px', color: overlayMuted, fontWeight: 600 }}>INJECT BLOCKAGE PRESET</div>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {(['small', 'medium', 'large'] as BlockingSeverity[]).map(sev => (
+                    <button key={sev} onClick={() => setSeverity(sev)} style={{ flex: 1, padding: '3px', fontSize: '8px', fontWeight: 700, background: devBlocking.severity === sev ? '#EA580C' : 'transparent', color: devBlocking.severity === sev ? '#fff' : overlayMuted, border: `1px solid ${devBlocking.severity === sev ? '#EA580C' : overlayBorder}`, borderRadius: '4px', cursor: 'pointer', textTransform: 'uppercase' }}>
+                      {sev}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => devBlocking.pendingPlacement ? disableBlockingMode() : enableBlockingMode(devBlocking.severity)} style={{ width: '100%', padding: '6px', fontSize: '10px', fontWeight: 700, background: devBlocking.pendingPlacement ? '#ef4444' : btnBg, color: devBlocking.pendingPlacement ? '#fff' : overlayText, border: `1px solid ${devBlocking.pendingPlacement ? '#ef4444' : overlayBorder}`, borderRadius: '4px', cursor: 'pointer', marginTop: '2px' }}>
+                  {devBlocking.pendingPlacement ? '✕ Cancel Injector' : '+ Click Slant to Inject'}
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Client Demo trigger */}
+          <button
+            onClick={demo.running ? stopDemo : handleStartDemo}
+            style={{ padding: '7px', fontSize: '10px', fontWeight: 700, background: demo.running ? '#ef4444' : 'linear-gradient(135deg, #f97316, #ea580c)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '4px' }}
+          >
+            {demo.running ? '⏹ TERMINATE DEMO' : '🎬 START SCADA DEMO'}
+          </button>
+        </div>
+
+        {/* Debug diagnostics toggle */}
+        <div style={{ borderTop: `1px solid ${overlayBorder}`, paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+          <span style={{ fontSize: '9.5px', color: overlayMuted }}>Debug Mode:</span>
+          <button onClick={() => setDebugMode(!debugMode)} style={{ padding: '3px 8px', fontSize: '8px', fontWeight: 700, background: debugMode ? '#0284c7' : 'transparent', color: debugMode ? '#fff' : overlayMuted, border: `1px solid ${debugMode ? '#0284c7' : overlayBorder}`, borderRadius: '4px', cursor: 'pointer' }}>
+            {debugMode ? 'ACTIVE' : 'INACTIVE'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
