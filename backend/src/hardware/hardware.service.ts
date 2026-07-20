@@ -404,14 +404,31 @@ export class HardwareService {
     const config = await this.getConfig(chuteId);
     const autoBlastEnabled = (config as any).autoBlastEnabled ?? false;
 
-    // Default threshold from generic profile
+    // Buildup threshold (metres): distance below this is considered buildup
     const threshold = 1.1;
 
+    // ── Inject radar readings directly into the processing pipeline ──────────
+    // We call mqttService.injectRadarData() instead of publishing to the MQTT
+    // broker because:
+    //   1. In serverless (Vercel/production) the backend has no persistent MQTT
+    //      subscription — published messages would never be received back by the
+    //      backend, so handleRadarData would never run.
+    //   2. Direct injection is synchronous within the request, ensuring the
+    //      localization engine runs and the 'localization' MQTT topic is published
+    //      to the broker BEFORE this REST response is returned.
+    //   3. The AI prediction engine + autonomous blast decision engine are also
+    //      triggered inline, so SABs fire immediately when autoBlastEnabled=true.
     for (let i = 0; i < radarValues.length; i++) {
       const zone = i + 1;
       const distance = radarValues[i];
+      await this.mqttService.injectRadarData(oId, zone, distance, distance < threshold);
+    }
 
-      // Publish to MQTT to simulate physical sensor telemetry
+    // Also publish raw radar values to MQTT so physical hubs and monitoring
+    // tools can observe the injected readings.
+    for (let i = 0; i < radarValues.length; i++) {
+      const zone = i + 1;
+      const distance = radarValues[i];
       this.mqttService.publish(`nigha/chute/${chuteId}/radar`, {
         zone,
         distance,
@@ -421,8 +438,9 @@ export class HardwareService {
 
     return {
       success: true,
-      message: `Manually set radar telemetry for ${radarValues.length} zones. Auto-blast status: ${autoBlastEnabled ? 'ENABLED (system will attempt auto-clearing)' : 'DISABLED (enable via SAB configuration first)'}`,
+      message: `Manually injected radar telemetry for ${radarValues.length} zones. Blockage localization engine executed. Auto-blast status: ${autoBlastEnabled ? 'ENABLED (system will attempt auto-clearing)' : 'DISABLED (enable via POST /hardware/config with autoBlastEnabled=true)'}`,
       radarValues,
+      autoBlastEnabled,
     };
   }
 

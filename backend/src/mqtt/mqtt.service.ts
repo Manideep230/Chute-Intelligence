@@ -467,6 +467,22 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
   }
 
   // ───────────────────────────────────────────────────────────────────────────
+  // DIRECT RADAR INJECTION (bypasses MQTT roundtrip)
+  // Called from HardwareService.setRadarTelemetry() so that the full pipeline
+  // (DB update → blockage localization publish → AI prediction → autonomous
+  //  blast decision) runs even in serverless/Vercel environments where the
+  //  backend has no persistent MQTT subscription to receive its own messages.
+  // ───────────────────────────────────────────────────────────────────────────
+  async injectRadarData(
+    chuteId: Types.ObjectId,
+    zone: number,
+    distance: number,
+    buildupDetected: boolean,
+  ): Promise<void> {
+    await this.handleRadarData(chuteId, { zone, distance, buildupDetected });
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
   // RADAR DATA HANDLER
   // Processes a single zone reading, computes trend rate, updates chute status,
   // logs uptime transitions, and re-runs the full AI prediction engine.
