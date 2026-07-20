@@ -429,7 +429,7 @@ export class HardwareService {
     for (let i = 0; i < radarValues.length; i++) {
       const zone = i + 1;
       const distance = radarValues[i];
-      this.mqttService.publish(`nigha/chute/${chuteId}/radar`, {
+      await this.mqttService.publish(`nigha/chute/${chuteId}/radar`, {
         zone,
         distance,
         buildupDetected: distance < threshold,

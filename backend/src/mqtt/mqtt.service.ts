@@ -647,7 +647,7 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
         .exec();
 
       // Publish the calculated localization telemetry over MQTT in real time
-      this.publish(`nigha/chute/${chuteId}/localization`, {
+      await this.publish(`nigha/chute/${chuteId}/localization`, {
         activePath,
         simulationMode: false,
         blockagePosition,
@@ -1441,11 +1441,11 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
       timestamp: new Date().toISOString(),
     };
 
-    this.publish(`nigha/chute/${chuteId}/prediction`, predictionPayload);
+    await this.publish(`nigha/chute/${chuteId}/prediction`, predictionPayload);
 
     const activeHub = await this.hubModel.findOne({ chuteId }).exec();
     if (activeHub) {
-      this.publish(
+      await this.publish(
         `domain/${activeHub.plantId || 'PLANT01'}/${activeHub.hubId}/${activeHub.passName}/${activeHub.passKey}/${activeHub.simNumber || '9999999999'}/SAB1/SV1/prediction`,
         predictionPayload,
       );
@@ -1463,7 +1463,7 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     try {
       const { decision, command } = await this.blastService.evaluateAndPrepare(chuteId);
       if (command) {
-        this.publish(`nigha/chute/${chuteId}/command`, {
+        await this.publish(`nigha/chute/${chuteId}/command`, {
           action: 'blast',
           commandId: command.commandId,
           blasterNumber: command.sabNumber,
@@ -1570,24 +1570,27 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  public publish(topic: string, payload: any) {
+  public async publish(topic: string, payload: any): Promise<void> {
     this.publishCount++;
     if (payload && payload.commandId) {
       this.publishTimestamps.set(payload.commandId, Date.now());
     }
 
     if (this.client && this.client.connected) {
-      this.client.publish(topic, JSON.stringify(payload), { qos: 1 }, (err) => {
-        if (err) {
-          this.failedPublishCount++;
-          this.logger.error(
-            `Failed to publish to ${topic} on EMQX: ${err.message}`,
-          );
-        } else {
-          this.logger.log(
-            `Published command to ${topic} on EMQX: ${JSON.stringify(payload)}`,
-          );
-        }
+      await new Promise<void>((resolve) => {
+        this.client.publish(topic, JSON.stringify(payload), { qos: 1 }, (err) => {
+          if (err) {
+            this.failedPublishCount++;
+            this.logger.error(
+              `Failed to publish to ${topic} on EMQX: ${err.message}`,
+            );
+          } else {
+            this.logger.log(
+              `Published command to ${topic} on EMQX: ${JSON.stringify(payload)}`,
+            );
+          }
+          resolve();
+        });
       });
     } else if (
       process.env.VERCEL ||
@@ -1602,31 +1605,33 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
       const username = process.env.MQTT_BACKEND_USERNAME || 'pf086f1d';
       const password = process.env.MQTT_BACKEND_PASSWORD || 'PrE_6sIGv9Efa0zQ';
 
-      const tempClient = mqtt.connect(brokerUrl, {
-        clientId: `backend_temp_${Math.random().toString(16).substr(2, 8)}`,
-        username,
-        password,
-      });
+      await new Promise<void>((resolve) => {
+        const tempClient = mqtt.connect(brokerUrl, {
+          clientId: `backend_temp_${Math.random().toString(16).substr(2, 8)}`,
+          username,
+          password,
+        });
 
-      tempClient.on('connect', () => {
-        tempClient.publish(
-          topic,
-          JSON.stringify(payload),
-          { qos: 1 },
-          (err) => {
-            if (err) {
-              this.logger.error(`Serverless publish failed: ${err.message}`);
-            } else {
-              this.logger.log(`Serverless published command to ${topic}`);
-            }
-            tempClient.end();
-          },
-        );
-      });
+        tempClient.on('connect', () => {
+          tempClient.publish(
+            topic,
+            JSON.stringify(payload),
+            { qos: 1 },
+            (err) => {
+              if (err) {
+                this.logger.error(`Serverless publish failed: ${err.message}`);
+              } else {
+                this.logger.log(`Serverless published command to ${topic}`);
+              }
+              tempClient.end(false, () => resolve());
+            },
+          );
+        });
 
-      tempClient.on('error', (err) => {
-        this.logger.error(`Serverless temp client error: ${err.message}`);
-        tempClient.end();
+        tempClient.on('error', (err) => {
+          this.logger.error(`Serverless temp client error: ${err.message}`);
+          tempClient.end(false, () => resolve());
+        });
       });
     } else {
       this.logger.warn(
