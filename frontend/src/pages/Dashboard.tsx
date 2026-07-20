@@ -45,22 +45,20 @@ export const Dashboard: React.FC = () => {
   const { user, token, logout } = useAuthStore();
   const roleAccess = useRoleAccess();
 
-  // 1. Telemetry / Operations Store values
-  const {
-    activeChuteId,
-    chuteStatus,
-    activeAlerts,
-    unreadAlerts,
-    setActiveChute,
-    clearUnreadAlerts,
-    applyLocalization,
-    radars,
-    solenoids,
-    compressor,
-    liveTemperature,
-    liveHumidity,
-    fetchCommandsList,
-  } = useTelemetryStore();
+  // 1. Telemetry / Operations Store values (fine-grained selectors for instant UX)
+  const activeChuteId = useTelemetryStore((s) => s.activeChuteId);
+  const chuteStatus = useTelemetryStore((s) => s.chuteStatus);
+  const activeAlerts = useTelemetryStore((s) => s.activeAlerts);
+  const unreadAlerts = useTelemetryStore((s) => s.unreadAlerts);
+  const setActiveChute = useTelemetryStore((s) => s.setActiveChute);
+  const clearUnreadAlerts = useTelemetryStore((s) => s.clearUnreadAlerts);
+  const applyLocalization = useTelemetryStore((s) => s.applyLocalization);
+  const radars = useTelemetryStore((s) => s.radars);
+  const solenoids = useTelemetryStore((s) => s.solenoids);
+  const compressor = useTelemetryStore((s) => s.compressor);
+  const liveTemperature = useTelemetryStore((s) => s.liveTemperature);
+  const liveHumidity = useTelemetryStore((s) => s.liveHumidity);
+  const fetchCommandsList = useTelemetryStore((s) => s.fetchCommandsList);
 
   // 2. Extracted Data Fetching, MQTT, Tab state, and Telemetry Hooks
   const {
@@ -330,7 +328,7 @@ export const Dashboard: React.FC = () => {
               <CircularProgress color="inherit" size={30} />
             </div>
           }>
-            {activeTab === 'dashboard' && (
+            <div style={{ display: activeTab === 'dashboard' ? 'flex' : 'none', flex: 1, flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
               <OperationsGrid
                 chutes={chutes}
                 theme={theme}
@@ -354,7 +352,7 @@ export const Dashboard: React.FC = () => {
                 energy={energy}
                 chuteKpis={chuteKpis}
               />
-            )}
+            </div>
 
             {activeTab === 'maintenance' && roleAccess.isManager && (
               <MaintenanceTab

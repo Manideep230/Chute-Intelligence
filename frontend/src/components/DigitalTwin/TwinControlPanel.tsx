@@ -29,12 +29,25 @@ function interpolatePath(pts: [number,number,number][], t: number): THREE.Vector
   );
 }
 
-export const TwinControlPanel: React.FC<{ theme?: 'dark' | 'light' }> = ({ theme = 'dark' }) => {
-  const {
-    activeChuteId, viewMode, setViewMode, cameraPreset, setCameraPreset,
-    activePath, simulationMode, blasters, devBlockages, setSimulationModeState, setActivePath, applyLocalization,
-    addDevBlockage, updateStatus, setDemoKpis, clearDevBlockages, updateDevBlockage, nearestSolenoidGroup,
-  } = useTelemetryStore();
+const TwinControlPanelComponent: React.FC<{ theme?: 'dark' | 'light' }> = ({ theme = 'dark' }) => {
+  const activeChuteId = useTelemetryStore((s) => s.activeChuteId);
+  const viewMode = useTelemetryStore((s) => s.viewMode);
+  const setViewMode = useTelemetryStore((s) => s.setViewMode);
+  const cameraPreset = useTelemetryStore((s) => s.cameraPreset);
+  const setCameraPreset = useTelemetryStore((s) => s.setCameraPreset);
+  const activePath = useTelemetryStore((s) => s.activePath);
+  const simulationMode = useTelemetryStore((s) => s.simulationMode);
+  const blasters = useTelemetryStore((s) => s.blasters);
+  const devBlockages = useTelemetryStore((s) => s.devBlockages);
+  const setSimulationModeState = useTelemetryStore((s) => s.setSimulationModeState);
+  const setActivePath = useTelemetryStore((s) => s.setActivePath);
+  const applyLocalization = useTelemetryStore((s) => s.applyLocalization);
+  const addDevBlockage = useTelemetryStore((s) => s.addDevBlockage);
+  const updateStatus = useTelemetryStore((s) => s.updateStatus);
+  const setDemoKpis = useTelemetryStore((s) => s.setDemoKpis);
+  const clearDevBlockages = useTelemetryStore((s) => s.clearDevBlockages);
+  const updateDevBlockage = useTelemetryStore((s) => s.updateDevBlockage);
+  const nearestSolenoidGroup = useTelemetryStore((s) => s.nearestSolenoidGroup);
 
   const { token } = useAuthStore();
   const [flowActive, setFlowActive] = useState(true);
@@ -319,3 +332,5 @@ export const TwinControlPanel: React.FC<{ theme?: 'dark' | 'light' }> = ({ theme
     </div>
   );
 };
+
+export const TwinControlPanel = React.memo(TwinControlPanelComponent);

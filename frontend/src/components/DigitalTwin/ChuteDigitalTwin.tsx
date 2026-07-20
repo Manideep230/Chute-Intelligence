@@ -2197,17 +2197,34 @@ const ActivePathIndicator: React.FC<{
 };
 
 // ─── MAIN DIGITAL TWIN EXPORT ─────────────────────────────────────────────────
-export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: number }> = ({ theme = 'dark', rotationX = 0 }) => {
-  const {
-    chuteStatus, radars, blasters, compressor, health,
-    activeBlasterNumber, liveTemperature, liveHumidity,
-    activePath, simulationMode, viewMode, cameraPreset,
-    blockagePosition, blockageDistance, nearestSolenoidGroup,
-    devBlockages, demoKpis, activeSolenoidValves, prediction, isMqttConnected,
-    addDevBlockage, updateDevBlockage, updateStatus, setDemoKpis,
-    setBlockageInfo,
-    setActiveBlasterNumber, setActiveSolenoidValves,
-  } = useTelemetryStore();
+const ChuteDigitalTwinComponent: React.FC<{ theme?: 'dark' | 'light'; rotationX?: number }> = ({ theme = 'dark', rotationX = 0 }) => {
+  const chuteStatus = useTelemetryStore((s) => s.chuteStatus);
+  const radars = useTelemetryStore((s) => s.radars);
+  const blasters = useTelemetryStore((s) => s.blasters);
+  const compressor = useTelemetryStore((s) => s.compressor);
+  const health = useTelemetryStore((s) => s.health);
+  const activeBlasterNumber = useTelemetryStore((s) => s.activeBlasterNumber);
+  const liveTemperature = useTelemetryStore((s) => s.liveTemperature);
+  const liveHumidity = useTelemetryStore((s) => s.liveHumidity);
+  const activePath = useTelemetryStore((s) => s.activePath);
+  const simulationMode = useTelemetryStore((s) => s.simulationMode);
+  const viewMode = useTelemetryStore((s) => s.viewMode);
+  const cameraPreset = useTelemetryStore((s) => s.cameraPreset);
+  const blockagePosition = useTelemetryStore((s) => s.blockagePosition);
+  const blockageDistance = useTelemetryStore((s) => s.blockageDistance);
+  const nearestSolenoidGroup = useTelemetryStore((s) => s.nearestSolenoidGroup);
+  const devBlockages = useTelemetryStore((s) => s.devBlockages);
+  const demoKpis = useTelemetryStore((s) => s.demoKpis);
+  const activeSolenoidValves = useTelemetryStore((s) => s.activeSolenoidValves);
+  const prediction = useTelemetryStore((s) => s.prediction);
+  const isMqttConnected = useTelemetryStore((s) => s.isMqttConnected);
+  const addDevBlockage = useTelemetryStore((s) => s.addDevBlockage);
+  const updateDevBlockage = useTelemetryStore((s) => s.updateDevBlockage);
+  const updateStatus = useTelemetryStore((s) => s.updateStatus);
+  const setDemoKpis = useTelemetryStore((s) => s.setDemoKpis);
+  const setBlockageInfo = useTelemetryStore((s) => s.setBlockageInfo);
+  const setActiveBlasterNumber = useTelemetryStore((s) => s.setActiveBlasterNumber);
+  const setActiveSolenoidValves = useTelemetryStore((s) => s.setActiveSolenoidValves);
 
   const flowActive = true;
   const debugMode = false;
@@ -2846,3 +2863,5 @@ export const ChuteDigitalTwin: React.FC<{ theme?: 'dark' | 'light'; rotationX?: 
     </div>
   );
 };
+
+export const ChuteDigitalTwin = React.memo(ChuteDigitalTwinComponent);

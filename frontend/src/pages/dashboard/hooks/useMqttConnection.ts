@@ -17,6 +17,7 @@ export function useMqttConnection(activeChuteId: string | null) {
   } = useTelemetryStore();
 
   const mqttClientRef = useRef<mqtt.MqttClient | null>(null);
+  const fetchTimeoutRef = useRef<any>(null);
 
   useEffect(() => {
     if (!activeChuteId) return;
@@ -140,9 +141,12 @@ export function useMqttConnection(activeChuteId: string | null) {
               setActiveSolenoidValves([]);
             }, animDuration);
           }
-          // Refresh commands list live when command status updates
+          // Refresh commands list live when command status updates (throttled)
           const currentToken = useAuthStore.getState().token;
-          useTelemetryStore.getState().fetchCommandsList(activeChuteId, currentToken);
+          if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
+          fetchTimeoutRef.current = setTimeout(() => {
+            useTelemetryStore.getState().fetchCommandsList(activeChuteId, currentToken);
+          }, 1000);
           break;
         default:
           break;

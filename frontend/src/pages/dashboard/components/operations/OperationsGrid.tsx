@@ -36,7 +36,7 @@ interface OperationsGridProps {
   chuteKpis: any;
 }
 
-export const OperationsGrid: React.FC<OperationsGridProps> = ({
+const OperationsGridComponent: React.FC<OperationsGridProps> = ({
   chutes,
   theme,
   roleAccess,
@@ -60,28 +60,26 @@ export const OperationsGrid: React.FC<OperationsGridProps> = ({
   chuteKpis,
 }) => {
   const { token } = useAuthStore();
-  const {
-    activeChuteId,
-    chuteStatus,
-    activePath,
-    simulationMode,
-    blockagePosition,
-    blockageDistance,
-    nearestSolenoidGroup,
-    activeSolenoidValves,
-    applyLocalization,
-    setActiveBlasterNumber,
-    setActiveSolenoidValves,
-    updateStatus,
-    radars,
-    solenoids,
-    compressor,
-    liveTemperature,
-    liveHumidity,
-    prediction,
-    commandsList,
-    fetchCommandsList,
-  } = useTelemetryStore();
+  const activeChuteId = useTelemetryStore((s) => s.activeChuteId);
+  const chuteStatus = useTelemetryStore((s) => s.chuteStatus);
+  const activePath = useTelemetryStore((s) => s.activePath);
+  const simulationMode = useTelemetryStore((s) => s.simulationMode);
+  const blockagePosition = useTelemetryStore((s) => s.blockagePosition);
+  const blockageDistance = useTelemetryStore((s) => s.blockageDistance);
+  const nearestSolenoidGroup = useTelemetryStore((s) => s.nearestSolenoidGroup);
+  const activeSolenoidValves = useTelemetryStore((s) => s.activeSolenoidValves);
+  const applyLocalization = useTelemetryStore((s) => s.applyLocalization);
+  const setActiveBlasterNumber = useTelemetryStore((s) => s.setActiveBlasterNumber);
+  const setActiveSolenoidValves = useTelemetryStore((s) => s.setActiveSolenoidValves);
+  const updateStatus = useTelemetryStore((s) => s.updateStatus);
+  const radars = useTelemetryStore((s) => s.radars);
+  const solenoids = useTelemetryStore((s) => s.solenoids);
+  const compressor = useTelemetryStore((s) => s.compressor);
+  const liveTemperature = useTelemetryStore((s) => s.liveTemperature);
+  const liveHumidity = useTelemetryStore((s) => s.liveHumidity);
+  const prediction = useTelemetryStore((s) => s.prediction);
+  const commandsList = useTelemetryStore((s) => s.commandsList);
+  const fetchCommandsList = useTelemetryStore((s) => s.fetchCommandsList);
 
   const [injZone, setInjZone] = useState<number>(1);
   const [injDistance, setInjDistance] = useState<number>(0.55);
@@ -1194,3 +1192,5 @@ export const OperationsGrid: React.FC<OperationsGridProps> = ({
     </div>
   );
 };
+
+export const OperationsGrid = React.memo(OperationsGridComponent);

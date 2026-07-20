@@ -1149,15 +1149,17 @@ export class IndustryService {
       .find({ chuteId: new Types.ObjectId(chuteId) })
       .sort({ createdAt: -1 })
       .limit(limit)
+      .lean()
       .exec()
-      .then((res) => res.reverse());
+      .then((res) => (res as any[]).reverse());
   }
 
   // --- WEBHOOKS ---
   async getWebhooks(organizationId: string): Promise<Webhook[]> {
     return this.webhookModel
       .find({ organizationId: new Types.ObjectId(organizationId) })
-      .exec();
+      .lean()
+      .exec() as any;
   }
 
   async createWebhook(organizationId: string, data: any): Promise<Webhook> {
@@ -1185,11 +1187,12 @@ export class IndustryService {
     }
     const config = await this.opcUaConfigModel
       .findOne({ plantId: new Types.ObjectId(plantId) })
+      .lean()
       .exec();
     if (config) {
       await this.cacheService.set(cacheKey, config, 120);
     }
-    return config;
+    return config as any;
   }
 
   async saveOpcUaConfig(plantId: string, data: any): Promise<OpcUaConfig> {
@@ -1221,7 +1224,8 @@ export class IndustryService {
       .find({ chuteId: new Types.ObjectId(chuteId) })
       .sort({ createdAt: -1 })
       .limit(limit)
-      .exec();
+      .lean()
+      .exec() as any;
   }
 
   // --- CHUTE KPIs ---
@@ -1246,12 +1250,14 @@ export class IndustryService {
 
     const [prediction, todayBlasts, weekBlasts, openAutoTickets, uptimeLogs] =
       await Promise.all([
-        this.aiPredictionModel.findOne({ chuteId: oId }).exec(),
+        this.aiPredictionModel.findOne({ chuteId: oId }).lean().exec(),
         this.blastOutcomeModel
           .find({ chuteId: oId, createdAt: { $gte: today } })
+          .lean()
           .exec(),
         this.blastOutcomeModel
           .find({ chuteId: oId, createdAt: { $gte: since7d } })
+          .lean()
           .exec(),
         this.maintenanceTicketModel
           .countDocuments({
@@ -1262,6 +1268,7 @@ export class IndustryService {
           .exec(),
         this.chuteUptimeLogModel
           .find({ chuteId: oId, enteredAt: { $gte: since24h } })
+          .lean()
           .exec(),
       ]);
 

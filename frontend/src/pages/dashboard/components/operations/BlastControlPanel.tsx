@@ -12,7 +12,7 @@ interface BlastControlPanelProps {
   theme: 'dark' | 'light';
 }
 
-export const BlastControlPanel: React.FC<BlastControlPanelProps> = ({
+const BlastControlPanelComponent: React.FC<BlastControlPanelProps> = ({
   activeChuteId,
   nearestSolenoidGroup,
   chuteStatus,
@@ -29,12 +29,10 @@ export const BlastControlPanel: React.FC<BlastControlPanelProps> = ({
 
   const blastHoldTimerRef = useRef<any>(null);
 
-  const {
-    compressor,
-    setActiveBlasterNumber,
-    setActiveSolenoidValves,
-    updateStatus,
-  } = useTelemetryStore();
+  const compressor = useTelemetryStore((s) => s.compressor);
+  const setActiveBlasterNumber = useTelemetryStore((s) => s.setActiveBlasterNumber);
+  const setActiveSolenoidValves = useTelemetryStore((s) => s.setActiveSolenoidValves);
+  const updateStatus = useTelemetryStore((s) => s.updateStatus);
 
   const colors = getThemeColors(theme);
   const GREEN = colors.GREEN;
@@ -217,3 +215,5 @@ export const BlastControlPanel: React.FC<BlastControlPanelProps> = ({
     </div>
   );
 };
+
+export const BlastControlPanel = React.memo(BlastControlPanelComponent);
