@@ -101,11 +101,17 @@ export interface TelemetryState {
   unreadAlerts: number;
   commandsList: any[];
 
+  // ── Digital Twin View & Control state ──────────────────────────────────
+  viewMode: 'operator' | 'transparent' | 'cutaway' | 'maintenance';
+  cameraPreset: string | null;
+
   // ── Dev/Demo-only state (never transmitted over MQTT) ────────────────────
   devBlockages: DevBlockage[];
   demoKpis: DemoKpis | null;
 
   setActiveChute: (chuteId: string | null) => void;
+  setViewMode: (mode: 'operator' | 'transparent' | 'cutaway' | 'maintenance') => void;
+  setCameraPreset: (preset: string | null) => void;
   setChuteData: (data: any) => void;
   setMqttConnected: (connected: boolean) => void;
   updateRadarData: (zone: number, distance: number, buildupDetected: boolean) => void;
@@ -165,8 +171,12 @@ export const useTelemetryStore = create<TelemetryState>((set) => ({
   devBlockages: [],
   demoKpis: null,
   commandsList: [],
+  viewMode: 'cutaway',
+  cameraPreset: null,
 
   setActiveChute: (chuteId) => set({ activeChuteId: chuteId }),
+  setViewMode: (mode) => set({ viewMode: mode }),
+  setCameraPreset: (preset) => set({ cameraPreset: preset }),
   setActiveBlasterNumber: (num) => set({ activeBlasterNumber: num }),
   setActiveSolenoidValves: (valves) => set({ activeSolenoidValves: valves }),
 

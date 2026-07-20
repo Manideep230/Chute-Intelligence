@@ -9,6 +9,7 @@ import { TelemetryChart } from '../../../../components/TelemetryChart/TelemetryC
 
 // Lazy load heavy components for route/bundle optimization
 const ChuteDigitalTwin = React.lazy(() => import('../../../../components/DigitalTwin/ChuteDigitalTwin').then(module => ({ default: module.ChuteDigitalTwin })));
+const TwinControlPanel = React.lazy(() => import('../../../../components/DigitalTwin/ChuteDigitalTwin').then(module => ({ default: module.TwinControlPanel })));
 const GlobalMap = React.lazy(() => import('../../../../components/Map/GlobalMap').then(module => ({ default: module.GlobalMap })));
 
 interface OperationsGridProps {
@@ -455,6 +456,25 @@ export const OperationsGrid: React.FC<OperationsGridProps> = ({
               <Maximize2 size={10} />
               EXPAND VIEW
             </button>
+          </div>
+        </div>
+
+        {/* 1B. DIGITAL TWIN CONTROLS TILE (2cols × 2rows) */}
+        <div
+          className="bento-tile bento-span-2 bento-row-span-2 visualization-tile"
+          style={{ padding: '16px', display: 'flex', flexDirection: 'column' }}
+        >
+          <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1px', color: BLUE, textTransform: 'uppercase', marginBottom: '12px', display: 'block', fontFamily: 'var(--font-sans)' }}>
+            Digital Twin Controls
+          </span>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            <React.Suspense fallback={
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
+                <CircularProgress color="inherit" size={24} />
+              </div>
+            }>
+              <TwinControlPanel theme={theme} />
+            </React.Suspense>
           </div>
         </div>
 
