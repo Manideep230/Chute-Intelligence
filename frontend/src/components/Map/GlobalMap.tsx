@@ -5,20 +5,32 @@ import { useTelemetryStore } from '../../store/telemetryStore';
 import 'leaflet/dist/leaflet.css';
 
 // Fix for default Leaflet icon marker in Vite builds
-const createSvgIcon = (color: string) => {
+const createSvgIcon = (color: string, isActive: boolean = false) => {
+  const size = isActive ? 42 : 30;
+  const innerSize = isActive ? 16 : 12;
+  const dashedSize = isActive ? 32 : 22;
+  const auraStyle = isActive ? `box-shadow: 0 0 16px 4px ${color}; z-index: 100;` : `box-shadow: 0 0 6px ${color};`;
+  const animationDuration = isActive ? '2s' : '4s';
+  const dashedStyle = isActive ? `border: 2.5px dashed ${color}; opacity: 0.85;` : `border: 2px dashed ${color}; opacity: 0.5;`;
+
   return L.divIcon({
     html: `
-      <div style="position: relative; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">
-        <div style="position: absolute; width: 12px; height: 12px; background-color: ${color}; border-radius: 50%; border: 2px solid #111827; box-shadow: 0 0 6px ${color};"></div>
-        <div style="position: absolute; width: 22px; height: 22px; border: 2px dashed ${color}; border-radius: 50%; animation: spin 4s linear infinite; opacity: 0.5;"></div>
+      <div style="position: relative; width: ${size}px; height: ${size}px; display: flex; align-items: center; justify-content: center;">
+        <div style="position: absolute; width: ${innerSize}px; height: ${innerSize}px; background-color: ${color}; border-radius: 50%; border: 2px solid #111827; ${auraStyle}"></div>
+        <div style="position: absolute; width: ${dashedSize}px; height: ${dashedSize}px; ${dashedStyle} border-radius: 50%; animation: spin ${animationDuration} linear infinite;"></div>
+        ${isActive ? `<div style="position: absolute; width: ${dashedSize + 12}px; height: ${dashedSize + 12}px; border: 1.5px solid ${color}; border-radius: 50%; animation: pulse-ring 2s ease-out infinite; opacity: 0.6;"></div>` : ''}
       </div>
       <style>
         @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes pulse-ring {
+          0% { transform: scale(0.65); opacity: 1; }
+          100% { transform: scale(1.3); opacity: 0; }
+        }
       </style>
     `,
     className: 'custom-map-icon',
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
   });
 };
 
@@ -161,7 +173,8 @@ export const GlobalMap: React.FC<{ chutes: ChuteMapItem[] }> = ({ chutes }) => {
 
           {filteredChutes.map((chute) => {
             const color = statusColors[chute.status as keyof typeof statusColors] || '#00C853';
-            const icon = createSvgIcon(color);
+            const isActive = chute._id === activeChuteId;
+            const icon = createSvgIcon(color, isActive);
 
             return (
               <Marker
