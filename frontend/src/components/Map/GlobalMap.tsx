@@ -64,8 +64,15 @@ const getChuteCoords = (chute: ChuteMapItem, index: number): { lat: number; lng:
 const ChangeMapView: React.FC<{ coords: { lat: number; lng: number } }> = ({ coords }) => {
   const map = useMap();
   useEffect(() => {
-    if (coords && typeof coords.lat === 'number' && typeof coords.lng === 'number') {
-      map.flyTo([coords.lat, coords.lng], 14, { animate: true, duration: 1 });
+    if (coords && typeof coords.lat === 'number' && typeof coords.lng === 'number' && map) {
+      try {
+        const container = map.getContainer();
+        if (container && container.clientWidth > 0 && container.clientHeight > 0) {
+          map.flyTo([coords.lat, coords.lng], 14, { animate: true, duration: 1 });
+        }
+      } catch (e) {
+        // Suppress Leaflet flyTo errors on unmount/hidden container
+      }
     }
   }, [coords.lat, coords.lng, map]);
   return null;

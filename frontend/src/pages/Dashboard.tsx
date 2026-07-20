@@ -328,7 +328,7 @@ export const Dashboard: React.FC = () => {
               <CircularProgress color="inherit" size={30} />
             </div>
           }>
-            <div style={{ display: activeTab === 'dashboard' ? 'flex' : 'none', flex: 1, flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
+            {activeTab === 'dashboard' && (
               <OperationsGrid
                 chutes={chutes}
                 theme={theme}
@@ -352,7 +352,7 @@ export const Dashboard: React.FC = () => {
                 energy={energy}
                 chuteKpis={chuteKpis}
               />
-            </div>
+            )}
 
             {activeTab === 'maintenance' && roleAccess.isManager && (
               <MaintenanceTab
