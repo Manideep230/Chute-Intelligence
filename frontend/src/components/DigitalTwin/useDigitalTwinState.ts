@@ -1,15 +1,13 @@
 /**
  * useDigitalTwinState
  * -------------------
- * Manages all LOCAL interaction state for the ChuteDigitalTwin:
+ * Manages SHARED interaction state for the ChuteDigitalTwin & TwinControlPanel:
  *   - Dev-mode blockage creation flow
  *   - Solenoid selection & blast lifecycle
  *   - Demo mode state machine (10-step sequence)
- *
- * Does NOT touch MQTT, RBAC, or telemetry store APIs.
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { create } from 'zustand';
 import * as THREE from 'three';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
@@ -69,6 +67,32 @@ export interface DemoState {
   stepProgress: number;           // 0..1 within current step
 }
 
+export interface DigitalTwinStoreState {
+  devBlocking: DevBlockingState;
+  solenoidSelection: SolenoidSelection;
+  blast: BlastState;
+  demo: DemoState;
+
+  enableBlockingMode: (severity: BlockingSeverity) => void;
+  disableBlockingMode: () => void;
+  setSeverity: (severity: BlockingSeverity) => void;
+
+  selectSolenoid: (blasterNumber: number, position: THREE.Vector3, radius: number, impactPoint: THREE.Vector3 | null) => void;
+  deselectSolenoid: () => void;
+
+  fireBlast: (blasterNumber: number, solenoidPosition: THREE.Vector3, hitBlockage: boolean, partialHit: boolean, onComplete: () => void) => void;
+  cancelBlast: () => void;
+
+  startDemo: (callbacks: { onBlockage?: () => void; onBlast?: () => void; onClear?: () => void; onComplete?: () => void; }) => void;
+  advanceDemoStep: (idx: number) => void;
+  stopDemo: () => void;
+  pauseDemo: () => void;
+  resumeDemo: () => void;
+
+  BLAST_RADII: Record<BlockingSeverity, number>;
+  SEVERITY_SCALE: Record<BlockingSeverity, number>;
+}
+
 // ─── DEMO STEP CONFIG ─────────────────────────────────────────────────────────
 
 const DEMO_STEPS: Array<{ step: DemoStep; label: string; durationMs: number }> = [
@@ -84,57 +108,31 @@ const DEMO_STEPS: Array<{ step: DemoStep; label: string; durationMs: number }> =
   { step: 'kpi_updated',         label: '⑩ KPIs updated — Blast Success | Block Cleared',  durationMs: 3000 },
 ];
 
-// ─── HOOK ─────────────────────────────────────────────────────────────────────
+let blastTimers: ReturnType<typeof setTimeout>[] = [];
+let demoTimer: ReturnType<typeof setTimeout> | null = null;
+let demoStepIdx = 0;
+let demoCallbacks: {
+  onBlockage?: () => void;
+  onBlast?: () => void;
+  onClear?: () => void;
+  onComplete?: () => void;
+} = {};
 
-export function useDigitalTwinState() {
+// ─── ZUSTAND STORE ────────────────────────────────────────────────────────────
 
-  // ── Blockage creation ──────────────────────────────────────────────────────
-  const [devBlocking, setDevBlocking] = useState<DevBlockingState>({
+export const useDigitalTwinState = create<DigitalTwinStoreState>((set, get) => ({
+  devBlocking: {
     enabled: false,
     severity: 'medium',
     pendingPlacement: false,
-  });
-
-  const enableBlockingMode = useCallback((severity: BlockingSeverity) => {
-    setDevBlocking({ enabled: true, severity, pendingPlacement: true });
-  }, []);
-
-  const disableBlockingMode = useCallback(() => {
-    setDevBlocking(s => ({ ...s, enabled: false, pendingPlacement: false }));
-  }, []);
-
-  const setSeverity = useCallback((severity: BlockingSeverity) => {
-    setDevBlocking(s => ({ ...s, severity }));
-  }, []);
-
-  // ── Solenoid selection ─────────────────────────────────────────────────────
-  const [solenoidSelection, setSolenoidSelection] = useState<SolenoidSelection>({
+  },
+  solenoidSelection: {
     blasterNumber: null,
     solenoidPosition: null,
     blastRadius: 1.8,
     impactPoint: null,
-  });
-
-  const selectSolenoid = useCallback((
-    blasterNumber: number,
-    position: THREE.Vector3,
-    radius: number,
-    impactPoint: THREE.Vector3 | null,
-  ) => {
-    setSolenoidSelection({ blasterNumber, solenoidPosition: position, blastRadius: radius, impactPoint });
-  }, []);
-
-  const deselectSolenoid = useCallback(() => {
-    setSolenoidSelection({
-      blasterNumber: null,
-      solenoidPosition: null,
-      blastRadius: 1.8,
-      impactPoint: null,
-    });
-  }, []);
-
-  // ── Blast lifecycle ────────────────────────────────────────────────────────
-  const [blast, setBlast] = useState<BlastState>({
+  },
+  blast: {
     active: false,
     blasterNumber: null,
     solenoidPosition: null,
@@ -144,138 +142,101 @@ export function useDigitalTwinState() {
     duration: 1500,
     hitBlockage: false,
     partialHit: false,
-  });
-
-  const blastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const fireBlast = useCallback((
-    blasterNumber: number,
-    solenoidPosition: THREE.Vector3,
-    hitBlockage: boolean,
-    partialHit: boolean,
-    onComplete: () => void,
-  ) => {
-    const now = performance.now();
-    setBlast({
-      active: true,
-      blasterNumber,
-      solenoidPosition,
-      lifecycle: 'valve_open',
-      t: 0,
-      startTime: now,
-      duration: 1500,
-      hitBlockage,
-      partialHit,
-    });
-
-    // Sequence transitions
-    const t1 = setTimeout(() => setBlast(b => ({ ...b, lifecycle: 'jet_active' })), 200);
-    const t2 = setTimeout(() => setBlast(b => ({ ...b, lifecycle: 'pressure_wave' })), 900);
-    const t3 = setTimeout(() => setBlast(b => ({ ...b, lifecycle: 'dissipating' })), 1300);
-    const t4 = setTimeout(() => {
-      setBlast(b => ({ ...b, active: false, lifecycle: 'idle', t: 0 }));
-      onComplete();
-    }, 1800);
-
-    blastTimerRef.current = t4;
-    return () => [t1, t2, t3, t4].forEach(clearTimeout);
-  }, []);
-
-  const cancelBlast = useCallback(() => {
-    if (blastTimerRef.current) clearTimeout(blastTimerRef.current);
-    setBlast(b => ({ ...b, active: false, lifecycle: 'idle', t: 0 }));
-  }, []);
-
-  // ── Demo state machine ─────────────────────────────────────────────────────
-  const [demo, setDemo] = useState<DemoState>({
+  },
+  demo: {
     running: false,
     paused: false,
     step: 'idle',
     stepLabel: '',
     stepProgress: 0,
-  });
+  },
 
-  const demoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const demoStepIdxRef = useRef(0);
-  const onDemoCallbacks = useRef<{
-    onBlockage?: () => void;
-    onBlast?: () => void;
-    onClear?: () => void;
-    onComplete?: () => void;
-  }>({});
+  enableBlockingMode: (severity) => set({ devBlocking: { enabled: true, severity, pendingPlacement: true } }),
+  disableBlockingMode: () => set(s => ({ devBlocking: { ...s.devBlocking, enabled: false, pendingPlacement: false } })),
+  setSeverity: (severity) => set(s => ({ devBlocking: { ...s.devBlocking, severity } })),
 
-  const advanceDemoStep = useCallback((idx: number) => {
+  selectSolenoid: (blasterNumber, position, radius, impactPoint) => set({
+    solenoidSelection: { blasterNumber, solenoidPosition: position, blastRadius: radius, impactPoint }
+  }),
+  deselectSolenoid: () => set({
+    solenoidSelection: { blasterNumber: null, solenoidPosition: null, blastRadius: 1.8, impactPoint: null }
+  }),
+
+  fireBlast: (blasterNumber, solenoidPosition, hitBlockage, partialHit, onComplete) => {
+    blastTimers.forEach(clearTimeout);
+    blastTimers = [];
+    const now = performance.now();
+    set({
+      blast: {
+        active: true,
+        blasterNumber,
+        solenoidPosition,
+        lifecycle: 'valve_open',
+        t: 0,
+        startTime: now,
+        duration: 1500,
+        hitBlockage,
+        partialHit,
+      }
+    });
+
+    const t1 = setTimeout(() => set(s => ({ blast: { ...s.blast, lifecycle: 'jet_active' } })), 200);
+    const t2 = setTimeout(() => set(s => ({ blast: { ...s.blast, lifecycle: 'pressure_wave' } })), 900);
+    const t3 = setTimeout(() => set(s => ({ blast: { ...s.blast, lifecycle: 'dissipating' } })), 1300);
+    const t4 = setTimeout(() => {
+      set(s => ({ blast: { ...s.blast, active: false, lifecycle: 'idle', t: 0 } }));
+      if (onComplete) onComplete();
+    }, 1800);
+
+    blastTimers = [t1, t2, t3, t4];
+  },
+
+  cancelBlast: () => {
+    blastTimers.forEach(clearTimeout);
+    blastTimers = [];
+    set(s => ({ blast: { ...s.blast, active: false, lifecycle: 'idle', t: 0 } }));
+  },
+
+  startDemo: (callbacks) => {
+    demoCallbacks = callbacks;
+    set({ demo: { running: true, paused: false, step: 'material_flowing', stepLabel: DEMO_STEPS[0].label, stepProgress: 0 } });
+    get().advanceDemoStep(0);
+  },
+
+  advanceDemoStep: (idx) => {
     if (idx >= DEMO_STEPS.length) {
-      setDemo({ running: false, paused: false, step: 'kpi_updated', stepLabel: DEMO_STEPS[DEMO_STEPS.length - 1].label, stepProgress: 1 });
-      onDemoCallbacks.current.onComplete?.();
+      set({ demo: { running: false, paused: false, step: 'kpi_updated', stepLabel: DEMO_STEPS[DEMO_STEPS.length - 1].label, stepProgress: 1 } });
+      demoCallbacks.onComplete?.();
       return;
     }
     const cfg = DEMO_STEPS[idx];
-    demoStepIdxRef.current = idx;
-    setDemo(d => ({ ...d, step: cfg.step, stepLabel: cfg.label, stepProgress: 0 }));
+    demoStepIdx = idx;
+    set(s => ({ demo: { ...s.demo, step: cfg.step, stepLabel: cfg.label, stepProgress: 0 } }));
 
-    // Trigger side-effects for key steps
-    if (cfg.step === 'creating_blockage') onDemoCallbacks.current.onBlockage?.();
-    if (cfg.step === 'blast_animation')   onDemoCallbacks.current.onBlast?.();
-    if (cfg.step === 'block_clears')      onDemoCallbacks.current.onClear?.();
+    if (cfg.step === 'creating_blockage') demoCallbacks.onBlockage?.();
+    if (cfg.step === 'blast_animation')   demoCallbacks.onBlast?.();
+    if (cfg.step === 'block_clears')      demoCallbacks.onClear?.();
 
-    demoTimerRef.current = setTimeout(() => {
-      advanceDemoStep(idx + 1);
+    demoTimer = setTimeout(() => {
+      get().advanceDemoStep(idx + 1);
     }, cfg.durationMs);
-  }, []);
+  },
 
-  const startDemo = useCallback((callbacks: {
-    onBlockage?: () => void;
-    onBlast?: () => void;
-    onClear?: () => void;
-    onComplete?: () => void;
-  }) => {
-    onDemoCallbacks.current = callbacks;
-    setDemo({ running: true, paused: false, step: 'material_flowing', stepLabel: DEMO_STEPS[0].label, stepProgress: 0 });
-    advanceDemoStep(0);
-  }, [advanceDemoStep]);
+  stopDemo: () => {
+    if (demoTimer) clearTimeout(demoTimer);
+    set({ demo: { running: false, paused: false, step: 'idle', stepLabel: '', stepProgress: 0 } });
+  },
 
-  const stopDemo = useCallback(() => {
-    if (demoTimerRef.current) clearTimeout(demoTimerRef.current);
-    setDemo({ running: false, paused: false, step: 'idle', stepLabel: '', stepProgress: 0 });
-  }, []);
+  pauseDemo: () => {
+    if (demoTimer) clearTimeout(demoTimer);
+    set(s => ({ demo: { ...s.demo, paused: true } }));
+  },
 
-  const pauseDemo = useCallback(() => {
-    if (demoTimerRef.current) clearTimeout(demoTimerRef.current);
-    setDemo(d => ({ ...d, paused: true }));
-  }, []);
+  resumeDemo: () => {
+    set(s => ({ demo: { ...s.demo, paused: false } }));
+    get().advanceDemoStep(demoStepIdx);
+  },
 
-  const resumeDemo = useCallback(() => {
-    setDemo(d => ({ ...d, paused: false }));
-    advanceDemoStep(demoStepIdxRef.current);
-  }, [advanceDemoStep]);
-
-  return {
-    // Blockage creation
-    devBlocking,
-    enableBlockingMode,
-    disableBlockingMode,
-    setSeverity,
-
-    // Solenoid selection
-    solenoidSelection,
-    selectSolenoid,
-    deselectSolenoid,
-
-    // Blast
-    blast,
-    fireBlast,
-    cancelBlast,
-
-    // Demo
-    demo,
-    startDemo,
-    stopDemo,
-    pauseDemo,
-    resumeDemo,
-
-    // Constants for blast radius by severity
-    BLAST_RADII: { small: 1.2, medium: 1.8, large: 2.5 } as Record<BlockingSeverity, number>,
-    SEVERITY_SCALE: { small: 0.18, medium: 0.32, large: 0.50 } as Record<BlockingSeverity, number>,
-  };
-}
+  BLAST_RADII: { small: 1.2, medium: 1.8, large: 2.5 },
+  SEVERITY_SCALE: { small: 0.18, medium: 0.32, large: 0.50 },
+}));
