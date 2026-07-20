@@ -9,7 +9,7 @@ import { TelemetryChart } from '../../../../components/TelemetryChart/TelemetryC
 
 // Lazy load heavy components for route/bundle optimization
 const ChuteDigitalTwin = React.lazy(() => import('../../../../components/DigitalTwin/ChuteDigitalTwin').then(module => ({ default: module.ChuteDigitalTwin })));
-const TwinControlPanel = React.lazy(() => import('../../../../components/DigitalTwin/ChuteDigitalTwin').then(module => ({ default: module.TwinControlPanel })));
+const TwinControlPanel = React.lazy(() => import('../../../../components/DigitalTwin/TwinControlPanel').then(module => ({ default: module.TwinControlPanel })));
 const GlobalMap = React.lazy(() => import('../../../../components/Map/GlobalMap').then(module => ({ default: module.GlobalMap })));
 
 interface OperationsGridProps {
