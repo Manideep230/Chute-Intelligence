@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { CircularProgress, Alert } from '@mui/material';
 import { ArrowUpRight, ArrowDownLeft, Radio, RefreshCw } from 'lucide-react';
+import { useTelemetryStore } from '../../../store/telemetryStore';
 
 interface MqttMonitorTabProps {
   token: string;
 }
 
 export const MqttMonitorTab: React.FC<MqttMonitorTabProps> = React.memo(({ token }) => {
+  const isMqttConnected = useTelemetryStore((s) => s.isMqttConnected);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -65,11 +67,11 @@ export const MqttMonitorTab: React.FC<MqttMonitorTabProps> = React.memo(({ token
                   width: '10px',
                   height: '10px',
                   borderRadius: '50%',
-                  background: stats.connected ? 'var(--accent-green)' : 'var(--accent-red)',
+                  background: (isMqttConnected || stats?.connected) ? 'var(--accent-green)' : 'var(--accent-red)',
                   display: 'inline-block'
                 }} />
                 <span style={{ fontSize: '18px', fontWeight: 700 }}>
-                  {stats.connected ? 'Connected' : 'Disconnected'}
+                  {(isMqttConnected || stats?.connected) ? 'Connected (WSS Live)' : 'Disconnected'}
                 </span>
               </div>
             </div>

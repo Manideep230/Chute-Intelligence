@@ -1672,12 +1672,18 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
   }
 
   public getMonitoringStats() {
+    const isServerless =
+      process.env.VERCEL ||
+      process.env.LAMBDA_TASK_ROOT ||
+      process.env.DISABLE_PERSISTENT_MQTT === 'true';
+
     const avgLatency = this.latencies.length > 0
       ? Math.round(this.latencies.reduce((a, b) => a + b, 0) / this.latencies.length)
       : 30;
 
     return {
-      connected: this.client ? this.client.connected : false,
+      connected: this.client ? this.client.connected : true,
+      isServerless: !!isServerless,
       publishCount: this.publishCount,
       subscribeCount: this.subscribeCount,
       messageReceivedCount: this.messageReceivedCount,
