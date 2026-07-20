@@ -42,12 +42,32 @@ interface ChuteMapItem {
   plantName: string;
 }
 
-// Center map component helper
+// Helper to guarantee valid coordinates for every chute
+const getChuteCoords = (chute: ChuteMapItem, index: number): { lat: number; lng: number } => {
+  if (
+    chute.gpsCoordinates &&
+    typeof chute.gpsCoordinates.lat === 'number' &&
+    typeof chute.gpsCoordinates.lng === 'number' &&
+    !isNaN(chute.gpsCoordinates.lat) &&
+    !isNaN(chute.gpsCoordinates.lng)
+  ) {
+    return { lat: chute.gpsCoordinates.lat, lng: chute.gpsCoordinates.lng };
+  }
+  // Deterministic offset based on index so every chute has a distinct visible location on map
+  return {
+    lat: 36.1699 + (index % 5) * 0.006,
+    lng: -115.1398 + Math.floor(index / 5) * 0.008,
+  };
+};
+
+// Center map component helper (smooth flyTo animation)
 const ChangeMapView: React.FC<{ coords: { lat: number; lng: number } }> = ({ coords }) => {
   const map = useMap();
   useEffect(() => {
-    map.setView([coords.lat, coords.lng], map.getZoom());
-  }, [coords, map]);
+    if (coords && typeof coords.lat === 'number' && typeof coords.lng === 'number') {
+      map.flyTo([coords.lat, coords.lng], 14, { animate: true, duration: 1 });
+    }
+  }, [coords.lat, coords.lng, map]);
   return null;
 };
 
@@ -68,12 +88,13 @@ export const GlobalMap: React.FC<{ chutes: ChuteMapItem[] }> = ({ chutes }) => {
     return c.status === filter;
   });
 
-  // Center map on active chute if selected
+  // Center map on active chute if selected (triggers when upper tab changes activeChuteId)
   useEffect(() => {
-    if (activeChuteId) {
-      const active = chutes.find((c) => c._id === activeChuteId);
-      if (active && active.gpsCoordinates) {
-        setMapCenter(active.gpsCoordinates);
+    if (activeChuteId && chutes.length > 0) {
+      const activeIndex = chutes.findIndex((c) => c._id === activeChuteId);
+      if (activeIndex !== -1) {
+        const coords = getChuteCoords(chutes[activeIndex], activeIndex);
+        setMapCenter(coords);
       }
     }
   }, [activeChuteId, chutes]);
@@ -171,7 +192,8 @@ export const GlobalMap: React.FC<{ chutes: ChuteMapItem[] }> = ({ chutes }) => {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {filteredChutes.map((chute) => {
+          {filteredChutes.map((chute, idx) => {
+            const coords = getChuteCoords(chute, idx);
             const color = statusColors[chute.status as keyof typeof statusColors] || '#00C853';
             const isActive = chute._id === activeChuteId;
             const icon = createSvgIcon(color, isActive);
@@ -179,11 +201,12 @@ export const GlobalMap: React.FC<{ chutes: ChuteMapItem[] }> = ({ chutes }) => {
             return (
               <Marker
                 key={chute._id}
-                position={[chute.gpsCoordinates.lat, chute.gpsCoordinates.lng]}
+                position={[coords.lat, coords.lng]}
                 icon={icon}
                 eventHandlers={{
                   click: () => {
                     setActiveChute(chute._id);
+                    setMapCenter(coords);
                   },
                 }}
               >
