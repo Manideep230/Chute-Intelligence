@@ -12,7 +12,6 @@ export type DashboardTab =
   | 'fleet-ops'
   | 'devices'
   | 'command-center'
-  | 'historical-replay'
   | 'alarm-mgmt'
   | 'mqtt-monitor'
   | 'enterprise-reports';

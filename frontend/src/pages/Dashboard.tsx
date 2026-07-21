@@ -4,7 +4,7 @@ import { useTelemetryStore } from '../store/telemetryStore';
 import { useRoleAccess } from '../hooks/useRoleAccess';
 import { CircularProgress } from '@mui/material';
 import {
-  Activity, Wrench, FileText, Settings, Users, Inbox, AlertTriangle, BarChart3, Shield, Radio, Film, Bell
+  Activity, Wrench, FileText, Settings, Users, Inbox, AlertTriangle, BarChart3, Shield, Radio, Bell
 } from 'lucide-react';
 
 // Extracted modules
@@ -35,7 +35,7 @@ const OperationsGrid = React.lazy(() => import('./dashboard/components/operation
 const FleetOperationsTab = React.lazy(() => import('./dashboard/components/FleetOperationsTab').then(module => ({ default: module.FleetOperationsTab })));
 const DevicesTab = React.lazy(() => import('./dashboard/components/DevicesTab').then(module => ({ default: module.DevicesTab })));
 const CommandCenterTab = React.lazy(() => import('./dashboard/components/CommandCenterTab').then(module => ({ default: module.CommandCenterTab })));
-const HistoricalReplayTab = React.lazy(() => import('./dashboard/components/HistoricalReplayTab').then(module => ({ default: module.HistoricalReplayTab })));
+
 const AlarmManagementTab = React.lazy(() => import('./dashboard/components/AlarmManagementTab').then(module => ({ default: module.AlarmManagementTab })));
 const MqttMonitorTab = React.lazy(() => import('./dashboard/components/MqttMonitorTab').then(module => ({ default: module.MqttMonitorTab })));
 const ReportingTab = React.lazy(() => import('./dashboard/components/ReportingTab').then(module => ({ default: module.ReportingTab })));
@@ -236,7 +236,6 @@ export const Dashboard: React.FC = () => {
     { id: 'fleet-ops', label: 'Fleet Operations', icon: <Shield size={16} /> },
     { id: 'devices', label: 'Device Inventory', icon: <Wrench size={16} /> },
     { id: 'command-center', label: 'Command Center', icon: <Activity size={16} /> },
-    { id: 'historical-replay', label: 'Historical Replay', icon: <Film size={16} /> },
     { id: 'alarm-mgmt', label: 'Alarms Control', icon: <Bell size={16} /> },
     { id: 'mqtt-monitor', label: 'MQTT Monitor', icon: <Radio size={16} /> },
     { id: 'enterprise-reports', label: 'Reports Center', icon: <FileText size={16} /> },
@@ -431,9 +430,6 @@ export const Dashboard: React.FC = () => {
               <CommandCenterTab activeChuteId={activeChuteId || ''} token={token || ''} />
             )}
 
-            {activeTab === 'historical-replay' && (
-              <HistoricalReplayTab activeChuteId={activeChuteId || ''} token={token || ''} />
-            )}
 
             {activeTab === 'alarm-mgmt' && (
               <AlarmManagementTab activeChuteId={activeChuteId || ''} token={token || ''} />
