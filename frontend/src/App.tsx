@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, Suspense, lazy } from 'react';
 import { useAuthStore } from './store/authStore';
 import { Login } from './pages/Login';
-import { Dashboard } from './pages/Dashboard';
 import { CircularProgress } from '@mui/material';
+
+const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
 
 function App() {
   const { isAuthenticated, isInitializing, setInitializing, setAuth, logout } = useAuthStore();
@@ -105,7 +106,31 @@ function App() {
     );
   }
 
-  return isAuthenticated ? <Dashboard /> : <Login />;
+  return isAuthenticated ? (
+    <Suspense fallback={
+      <div 
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100vh',
+          background: 'radial-gradient(circle at center, #111827 0%, #030712 100%)',
+          color: 'white',
+          fontFamily: 'Share Tech Mono, monospace',
+        }}
+      >
+        <CircularProgress style={{ color: '#ff6b35', marginBottom: '20px' }} size={50} />
+        <div style={{ fontSize: '14px', letterSpacing: '3px', textTransform: 'uppercase', color: '#ff6b35', fontWeight: 600 }}>
+          Loading Operations Dashboard
+        </div>
+      </div>
+    }>
+      <Dashboard />
+    </Suspense>
+  ) : (
+    <Login />
+  );
 }
 
 export default App;

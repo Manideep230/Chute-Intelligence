@@ -57,6 +57,10 @@ export class AppService implements OnModuleInit {
   async onModuleInit() {
     console.log(`[ENTER] [AppService.onModuleInit] Initializing AppService...`);
     try {
+      if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+        this.logger.log('Running in serverless/production context. Skipping database seeding.');
+        return;
+      }
       await this.seedData();
       console.log(`[EXIT] [AppService.onModuleInit] AppService successfully initialized.`);
     } catch (err: any) {
