@@ -118,13 +118,22 @@ export const Dashboard: React.FC = () => {
   const chuteHealthScore = useMemo(() => {
     const openAutoTickets = chuteKpis?.openAutoTickets ?? 0;
     const maintenanceRisk = Math.min(100, openAutoTickets * 20);
-    return Math.round(
-      0.35 * (chuteKpis?.uptimePercent24h ?? 100) +
-      0.25 * blastEffScore +
-      0.25 * compHealth +
+    const uptimeVal = chuteKpis?.uptimePercent24h ?? 100;
+    const blastVal = blastEffScore >= 0 ? blastEffScore : 100;
+    const compVal = compHealth;
+
+    const statusPenalty = chuteStatus === 'Blocked' ? 35 : chuteStatus === 'Buildup' ? 15 : 0;
+    const failurePenalty = (chuteKpis?.consecutiveFailedBlasts ?? 0) * 8;
+
+    const baseHealth = Math.round(
+      0.35 * uptimeVal +
+      0.25 * blastVal +
+      0.25 * compVal +
       0.15 * (100 - maintenanceRisk)
     );
-  }, [chuteKpis, blastEffScore, compHealth]);
+
+    return Math.max(5, Math.min(100, baseHealth - statusPenalty - failurePenalty));
+  }, [chuteKpis, blastEffScore, compHealth, chuteStatus]);
 
 
 

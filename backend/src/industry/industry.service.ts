@@ -1248,8 +1248,9 @@ export class IndustryService {
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const since7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-    const [prediction, todayBlasts, weekBlasts, openAutoTickets, uptimeLogs] =
+    const [chute, prediction, todayBlasts, weekBlasts, openAutoTickets, uptimeLogs] =
       await Promise.all([
+        this.chuteModel.findById(oId).lean().exec(),
         this.aiPredictionModel.findOne({ chuteId: oId }).lean().exec(),
         this.blastOutcomeModel
           .find({ chuteId: oId, createdAt: { $gte: today } })
@@ -1272,6 +1273,32 @@ export class IndustryService {
           .exec(),
       ]);
 
+    // Compute dynamic 24h uptime percentage from uptime logs if available
+    let totalDowntimeMinutes = 0;
+    if (uptimeLogs && uptimeLogs.length > 0) {
+      for (const log of uptimeLogs as any[]) {
+        if (log.status === 'Blocked' || log.status === 'Buildup') {
+          const start = new Date(log.enteredAt).getTime();
+          const end = log.exitedAt ? new Date(log.exitedAt).getTime() : Date.now();
+          totalDowntimeMinutes += Math.max(0, (end - start) / (1000 * 60));
+        }
+      }
+    }
+
+    const calculatedUptime = Math.max(
+      0,
+      Math.min(100, Math.round(((1440 - totalDowntimeMinutes) / 1440) * 1000) / 10)
+    );
+
+    const dynamicUptime =
+      prediction?.uptimePercent24h && prediction.uptimePercent24h > 0
+        ? prediction.uptimePercent24h
+        : (chute?.status === 'Normal' && totalDowntimeMinutes === 0)
+        ? 100
+        : calculatedUptime;
+
+    const consecutiveFailedBlasts = (chute as any)?.consecutiveFailedBlasts ?? prediction?.consecutiveFailedBlasts ?? 0;
+
     const scoredBlasts = weekBlasts.filter((b) => b.effectivenessScore >= 0);
     const avgEffectiveness =
       scoredBlasts.length > 0
@@ -1282,19 +1309,19 @@ export class IndustryService {
         : -1;
 
     return {
-      uptimePercent24h: prediction?.uptimePercent24h ?? 100,
-      blockageMinutesToday: prediction?.blockageMinutesToday ?? 0,
-      airLitresToday: prediction?.airLitresToday ?? 0,
+      uptimePercent24h: dynamicUptime,
+      blockageMinutesToday: Math.round(totalDowntimeMinutes) || (prediction?.blockageMinutesToday ?? 0),
+      airLitresToday: prediction?.airLitresToday ?? (todayBlasts.length * 48),
       lastBlastEffectivenessScore:
-        prediction?.lastBlastEffectivenessScore ?? -1,
-      consecutiveFailedBlasts: prediction?.consecutiveFailedBlasts ?? 0,
-      overallTrend: prediction?.overallTrend ?? 'stable',
+        prediction?.lastBlastEffectivenessScore ?? (scoredBlasts[0]?.effectivenessScore ?? -1),
+      consecutiveFailedBlasts,
+      overallTrend: prediction?.overallTrend ?? (consecutiveFailedBlasts > 0 ? 'degrading' : 'stable'),
       buildupRatePerMin: prediction?.buildupRatePerMin ?? 0,
       blastsToday: todayBlasts.length,
       blastsThisWeek: weekBlasts.length,
       avgBlastEffectivenessThisWeek: avgEffectiveness,
       openAutoTickets,
-      uptimeLogs: uptimeLogs.slice(0, 20), // last 20 transitions
+      uptimeLogs: uptimeLogs.slice(0, 20),
     };
   }
 

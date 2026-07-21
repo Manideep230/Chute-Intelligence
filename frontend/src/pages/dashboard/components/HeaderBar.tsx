@@ -32,6 +32,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
   const colors = getThemeColors(theme);
   const GREEN = colors.GREEN;
   const RED = colors.RED;
+  const AMBER = colors.AMBER;
 
   const statusColor = getStatusColor(chuteStatus, colors);
   const statusBg = getStatusBg(chuteStatus);
@@ -84,15 +85,17 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
             </div>
             <span style={{ color: 'var(--border)', fontSize: '14px' }}>·</span>
             <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: GREEN }}>{chuteKpis.uptimePercent24h}%</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: chuteKpis.uptimePercent24h >= 90 ? GREEN : chuteKpis.uptimePercent24h >= 75 ? AMBER : RED }}>
+                {chuteKpis.uptimePercent24h}%
+              </span>
               <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: '3px' }}>uptime</span>
             </div>
-            {chuteKpis.consecutiveFailedBlasts >= 2 && (
+            {chuteKpis.consecutiveFailedBlasts > 0 && (
               <div style={{
                 padding: '2px 8px', borderRadius: '4px', background: 'rgba(244,63,94,0.1)',
                 border: `1px solid ${RED}30`, fontSize: '10px', fontWeight: 800, color: RED
               }}>
-                ⚠️ {chuteKpis.consecutiveFailedBlasts} Blast Failures
+                ⚠️ {chuteKpis.consecutiveFailedBlasts} Blast Failure{chuteKpis.consecutiveFailedBlasts > 1 ? 's' : ''}
               </div>
             )}
           </div>
