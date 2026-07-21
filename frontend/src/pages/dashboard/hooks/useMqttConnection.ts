@@ -50,9 +50,8 @@ export function useMqttConnection(activeChuteId: string | null) {
       client.subscribe(`nigha/chute/${activeChuteId}/localization`);
       client.subscribe(`nigha/chute/${activeChuteId}/prediction`);
 
-      // Hierarchical topics (wildcard for this chute - e.g. domain/+/NGCH.../+/+/+/+/+/+)
-      // Subscribe to any hierarchical messages for matching chutes
-      client.subscribe(`domain/+/+/+/+/+/+/+/+`);
+      // Hierarchical topics (chute-specific wildcard only — NOT all broker traffic)
+      client.subscribe(`domain/+/${activeChuteId}/+/+/+/+/+/+`);
 
       // Refresh command list on reconnect/connect
       const token = useAuthStore.getState().token;

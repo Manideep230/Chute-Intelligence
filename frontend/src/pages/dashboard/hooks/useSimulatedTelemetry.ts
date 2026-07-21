@@ -19,16 +19,19 @@ export function useSimulatedTelemetry(
   );
 
   // Simulated telemetry updates — 2-second timer
+  // Use separate setState calls so React 18 auto-batches them into one render
   useEffect(() => {
     const timer = setInterval(() => {
+      const delta = (Math.random() - 0.5) * 8;
       setThroughput(t => {
-        const delta = (Math.random() - 0.5) * 8;
         const next = t + delta;
-        const bounded = next < 500 ? 500 : next > 1200 ? 1200 : next;
-        setThroughputHistory(prev => [...prev.slice(-9), bounded]);
-        return bounded;
+        return next < 500 ? 500 : next > 1200 ? 1200 : next;
       });
-
+      setThroughputHistory(prev => {
+        const next = prev[prev.length - 1] + delta;
+        const bounded = next < 500 ? 500 : next > 1200 ? 1200 : next;
+        return [...prev.slice(-9), bounded];
+      });
       setEnergy(e => e + 0.02 + (chuteStatus === 'Blasting' ? 0.38 : 0));
       setWearIndex(w => Math.max(15, w - 0.0001));
     }, 2000);

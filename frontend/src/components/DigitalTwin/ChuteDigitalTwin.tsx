@@ -1399,6 +1399,8 @@ const RealisticMaterialFlow: React.FC<{
       .filter(b => !b.cleared)
       .map(b => b.normalizedT);
 
+    let dirty = false;
+
     particles.forEach((p, idx) => {
       let stop = false;
       let pileY = 0;
@@ -1464,13 +1466,13 @@ const RealisticMaterialFlow: React.FC<{
       dummy.scale.setScalar(stop ? p.sizeScale * 1.35 : p.sizeScale);
       dummy.updateMatrix();
       meshRef.current!.setMatrixAt(idx, dummy.matrix);
-
       // color variation per instance
       meshRef.current!.setColorAt(idx, COLORS[p.colorIdx]);
+      dirty = true;
     });
 
-    meshRef.current.instanceMatrix.needsUpdate = true;
-    if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true;
+    meshRef.current.instanceMatrix.needsUpdate = dirty;
+    if (dirty && meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true;
   });
 
   return (
@@ -1529,6 +1531,9 @@ const SlantClickPlane: React.FC<{
 };
 
 // ─── LEGACY BLOCKAGE MASS (for MQTT-driven radar blockages) ──────────────────
+// Pre-allocated reusable color to avoid GC pressure in useFrame
+const _blockageMassEmissive = new THREE.Color('#f59e0b');
+
 const BlockageMass: React.FC<{ zone: number; active: boolean; viewMode: string }> = ({ zone, active, viewMode }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   useFrame((s) => {
@@ -1537,7 +1542,7 @@ const BlockageMass: React.FC<{ zone: number; active: boolean; viewMode: string }
       meshRef.current.scale.setScalar(pulse);
       if (active) {
         const mat = meshRef.current.material as THREE.MeshStandardMaterial;
-        mat.emissive = new THREE.Color('#f59e0b');
+        mat.emissive.copy(_blockageMassEmissive);
         mat.emissiveIntensity = 0.4 + Math.sin(s.clock.elapsedTime * 6) * 0.2;
       }
     }
@@ -1845,6 +1850,9 @@ const CompressorUnit: React.FC<{
 };
 
 // ─── NIGHA HUB ────────────────────────────────────────────────────────────────
+// Pre-allocated reusable color to avoid GC pressure in NighaHub useFrame
+const _hubLedColor = new THREE.Color();
+
 const NighaHub: React.FC<{
   isOnline: boolean;
   viewMode: 'operator' | 'transparent' | 'cutaway' | 'maintenance';
@@ -1860,11 +1868,12 @@ const NighaHub: React.FC<{
 
   useFrame((s, delta) => {
     if (ledRef.current) {
-      (ledRef.current.material as THREE.MeshBasicMaterial).color.set(
-        isOnline
-          ? new THREE.Color().setHSL(0.35, 1, 0.4 + Math.sin(s.clock.elapsedTime * 2) * 0.15)
-          : '#FF3D00',
-      );
+      if (isOnline) {
+        _hubLedColor.setHSL(0.35, 1, 0.4 + Math.sin(s.clock.elapsedTime * 2) * 0.15);
+        (ledRef.current.material as THREE.MeshBasicMaterial).color.copy(_hubLedColor);
+      } else {
+        (ledRef.current.material as THREE.MeshBasicMaterial).color.set('#FF3D00');
+      }
     }
     const targetExplode = viewMode === 'maintenance' ? 1.0 : 0.0;
     currentExplode.current = THREE.MathUtils.lerp(currentExplode.current, targetExplode, delta * 4.0);
