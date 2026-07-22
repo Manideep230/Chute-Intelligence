@@ -166,10 +166,7 @@ export class AuthService {
       return false;
     }
 
-    let receiver = cleanPhone;
-    if (receiver.length === 10) {
-      receiver = '91' + receiver;
-    }
+    const receiver = cleanPhone;
 
     const urlBase = process.env.SMS_API_URL || 'https://43.252.88.250/index.php/smsapi/httpapi/';
     const secret = process.env.SMS_SECRET || 'xledocqmXkNPrTesuqWr';
@@ -178,7 +175,7 @@ export class AuthService {
     const route = process.env.SMS_ROUTE || 'TA';
     const msgtype = process.env.SMS_MSG_TYPE || '1';
     
-    const sms = `Welcome to Chute Intelligence App\n\nYour OTP is ${otp}\n\nDon't share with anybody.\n\nTeam NighaTech Global Pvt. Ltd.`;
+    const sms = `Welcome to NighaTech Global Your OTP for authentication is ${otp} don't share with anybody Thank you`;
 
     let url = urlBase;
     if (!url.endsWith('/') && !url.includes('?')) {
