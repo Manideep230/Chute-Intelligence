@@ -158,6 +158,11 @@ export class AuthService {
       return false;
     }
 
+    let receiver = cleanPhone;
+    if (receiver.length === 10) {
+      receiver = '91' + receiver;
+    }
+
     const urlBase = process.env.SMS_API_URL || 'https://43.252.88.250/index.php/smsapi/httpapi/';
     const secret = process.env.SMS_SECRET || 'xledocqmXkNPrTesuqWr';
     const sender = process.env.SMS_SENDER || 'NIGHAI';
@@ -172,12 +177,15 @@ export class AuthService {
       url += '/';
     }
     const separator = url.includes('?') ? '&' : '?';
-    const finalUrl = `${url}${separator}secret=${secret}&sender=${sender}&tempid=${tempid}&receiver=${cleanPhone}&route=${route}&msgtype=${msgtype}&sms=${encodeURIComponent(sms)}`;
+    const finalUrl = `${url}${separator}secret=${secret}&sender=${sender}&tempid=${tempid}&receiver=${receiver}&route=${route}&msgtype=${msgtype}&sms=${encodeURIComponent(sms)}`;
 
     return new Promise((resolve) => {
+      const agent = new https.Agent({
+        rejectUnauthorized: false
+      });
       const req = https.get(
         finalUrl,
-        { rejectUnauthorized: false, timeout: 5000 },
+        { agent, timeout: 5000 },
         (res) => {
           let data = '';
           res.on('data', (chunk) => {
@@ -259,9 +267,11 @@ export class AuthService {
         console.log(`[SMS-SENT] OTP sent successfully to registered mobile number.`);
       }
 
-      console.log(`[SMS-REQUEST_START] [AuthService.requestOtp] Triggering SMS API request...`);
-      await this.sendSmsOtp(phone, otp);
-      console.log(`[SMS-REQUEST_END] [AuthService.requestOtp] SMS API trigger completed.`);
+      console.log(`[SMS-REQUEST_START] [AuthService.requestOtp] Triggering SMS API request in background...`);
+      this.sendSmsOtp(phone, otp).catch((err) => {
+        console.error('[SMS-BG-ERROR]', err);
+      });
+      console.log(`[SMS-REQUEST_END] [AuthService.requestOtp] SMS API trigger completed (dispatched to background).`);
 
       console.log(`[RESPONSE_SENT] [AuthService.requestOtp] Returning response.`);
       return {
@@ -468,9 +478,13 @@ export class AuthService {
       );
     }
 
-    // Trigger SMS sending to both old and new phone numbers
-    await this.sendSmsOtp(user.phone, oldPhoneOtp);
-    await this.sendSmsOtp(newPhone, newPhoneOtp);
+    // Trigger SMS sending in background to both old and new phone numbers
+    this.sendSmsOtp(user.phone, oldPhoneOtp).catch((err) => {
+      console.error('[SMS-BG-ERROR-OLD]', err);
+    });
+    this.sendSmsOtp(newPhone, newPhoneOtp).catch((err) => {
+      console.error('[SMS-BG-ERROR-NEW]', err);
+    });
 
     return {
       success: true,
