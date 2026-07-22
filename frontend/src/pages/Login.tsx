@@ -329,10 +329,18 @@ export const Login: React.FC = () => {
               <h3 style={{ fontSize: '24px', fontWeight: 800, color: '#FFF', margin: 0 }}>
                 {step === 1 ? 'Operator Login' : 'Verify Identity'}
               </h3>
-              <p style={{ fontSize: '13px', color: '#94A3B8', marginTop: '6px', margin: 0 }}>
-                {step === 1 
-                  ? 'Enter your registered mobile number to request a security OTP.' 
-                  : `OTP code sent to phone number ${phone}.`}
+              <p style={{ fontSize: '13.5px', color: '#94A3B8', marginTop: '8px', margin: 0, lineHeight: 1.6 }}>
+                {step === 1 ? (
+                  'Enter your registered mobile number to request a security OTP.'
+                ) : (
+                  <>
+                    <strong style={{ color: '#FFF', display: 'block', marginBottom: '4px', fontSize: '14.5px' }}>Welcome to Chute Intelligence App</strong>
+                    OTP has been requested.
+                    <span style={{ display: 'block', fontSize: '12.5px', color: '#64748B', marginTop: '6px' }}>
+                      If you don't receive it within a few seconds, you can resend after the timer expires.
+                    </span>
+                  </>
+                )}
               </p>
             </div>
 

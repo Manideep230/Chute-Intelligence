@@ -20,6 +20,14 @@ import {
   SessionDocument,
 } from '../database/schemas';
 
+const keepAliveAgent = new https.Agent({
+  keepAlive: process.env.NODE_ENV !== 'test',
+  keepAliveMsecs: 10000,
+  maxSockets: 25,
+  maxFreeSockets: 10,
+  rejectUnauthorized: false,
+});
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -151,7 +159,7 @@ export class AuthService {
   }
 
   // Helper to send OTP via SMS API
-  private async sendSmsOtp(phone: string, otp: string): Promise<boolean> {
+  private async sendSmsOtp(phone: string, otp: string, apiResponseTime?: number): Promise<boolean> {
     const cleanPhone = phone.replace(/\D/g, '');
     if (!cleanPhone) {
       console.warn(`[SMS-API] Invalid phone number (no digits): ${phone}`);
@@ -179,35 +187,47 @@ export class AuthService {
     const separator = url.includes('?') ? '&' : '?';
     const finalUrl = `${url}${separator}secret=${secret}&sender=${sender}&tempid=${tempid}&receiver=${receiver}&route=${route}&msgtype=${msgtype}&sms=${encodeURIComponent(sms)}`;
 
+    const smsStart = performance.now();
+
     return new Promise((resolve) => {
-      const agent = new https.Agent({
-        rejectUnauthorized: false
-      });
       const req = https.get(
         finalUrl,
-        { agent, timeout: 5000 },
+        { agent: keepAliveAgent, timeout: 5000 },
         (res) => {
           let data = '';
           res.on('data', (chunk) => {
             data += chunk;
           });
           res.on('end', () => {
-            console.log(
-              `[SMS-API-RESPONSE] status=${res.statusCode} response=${data}`,
-            );
+            const smsLatency = performance.now() - smsStart;
+            if (process.env.NODE_ENV !== 'test') {
+              console.log(
+                `[SMS-API-RESPONSE] status=${res.statusCode} response=${data.trim()} latency=${smsLatency.toFixed(2)}ms`,
+              );
+              if (apiResponseTime !== undefined) {
+                const e2e = apiResponseTime + smsLatency;
+                console.log(`[LATENCY-REPORT-E2E] End-to-End Latency: ${e2e.toFixed(2)}ms`);
+              }
+            }
             resolve(true);
           });
         },
       );
 
       req.on('timeout', () => {
-        console.warn('[SMS-API-TIMEOUT] SMS gateway request timed out after 5000ms');
+        const smsLatency = performance.now() - smsStart;
+        if (process.env.NODE_ENV !== 'test') {
+          console.warn(`[SMS-API-TIMEOUT] SMS gateway request timed out after ${smsLatency.toFixed(2)}ms`);
+        }
         req.destroy();
         resolve(false);
       });
 
       req.on('error', (err) => {
-        console.error('[SMS-API-ERROR]', err);
+        const smsLatency = performance.now() - smsStart;
+        if (process.env.NODE_ENV !== 'test') {
+          console.error(`[SMS-API-ERROR] SMS gateway request failed after ${smsLatency.toFixed(2)}ms:`, err);
+        }
         resolve(false);
       });
     });
@@ -219,47 +239,56 @@ export class AuthService {
   }
 
   async requestOtp(phone: string): Promise<{ success: boolean; message: string }> {
+    const apiStart = performance.now();
     console.log(`[AUTH_SERVICE_ENTER] [AuthService.requestOtp] Starting OTP flow for ${phone}`);
     try {
+      const validationStart = performance.now();
       const cleanPhone = phone.replace(/\D/g, '');
       if (cleanPhone.length < 10) {
         throw new BadRequestException('Invalid phone number format');
       }
+      const validationTime = performance.now() - validationStart;
 
-      console.log(`[DATABASE_QUERY_START] [AuthService.requestOtp] Finding user by phone...`);
+      const dbLookupStart = performance.now();
       let user: any = await this.userModel.findOne({ phone }).exec();
-      console.log(`[DATABASE_QUERY_END] [AuthService.requestOtp] User lookup complete. Found: ${!!user}`);
-      if (!user) {
-        console.log(`[AUTH_SERVICE_REGISTER] [AuthService.requestOtp] Registering new user...`);
-        user = await this.register('New User', phone, 'Worker');
-      }
+      const dbLookupTime = performance.now() - dbLookupStart;
 
       const now = new Date();
-      if (user.otpLastSent && process.env.NODE_ENV !== 'test') {
+      if (user && user.otpLastSent && process.env.NODE_ENV !== 'test') {
         const timeDiff = now.getTime() - new Date(user.otpLastSent).getTime();
         if (timeDiff < 60 * 1000) {
           throw new BadRequestException('Please wait 60 seconds before requesting another OTP');
         }
       }
 
+      const genStart = performance.now();
       let otp: string;
       if (process.env.NODE_ENV === 'test') {
         otp = '939188';
       } else {
         otp = crypto.randomInt(100000, 1000000).toString();
       }
-      
-      console.log(`[OTP_GENERATED] [AuthService.requestOtp] Generated OTP.`);
-      const expires = new Date(Date.now() + 5 * 60 * 1000); // 5 mins expiry
+      const genTime = performance.now() - genStart;
 
-      user.otp = this.hashOtp(otp);
-      user.otpExpires = expires;
+      const hashStart = performance.now();
+      const hashedOtp = this.hashOtp(otp);
+      const hashTime = performance.now() - hashStart;
+
+      const dbSaveStart = performance.now();
+      if (!user) {
+        user = await this.register('New User', phone, 'Worker');
+      }
+      
+      user.otp = hashedOtp;
+      user.otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 mins expiry
       user.otpAttempts = 0;
       user.otpLastSent = now;
       
       console.log(`[DATABASE_WRITE_START] [AuthService.requestOtp] Saving OTP to user...`);
       await user.save();
       console.log(`[DATABASE_WRITE_END] [AuthService.requestOtp] Saved OTP successfully.`);
+      const dbSaveTime = performance.now() - dbSaveStart;
+      const mongoLatency = dbLookupTime + dbSaveTime;
 
       if (process.env.NODE_ENV !== 'production') {
         console.log(`[SMS-MOCK] OTP for login of ${phone} is: ${otp}`);
@@ -267,8 +296,19 @@ export class AuthService {
         console.log(`[SMS-SENT] OTP sent successfully to registered mobile number.`);
       }
 
+      const apiResponseTime = performance.now() - apiStart;
+      console.log(`[LATENCY-REPORT]
+        Phone Validation: ${validationTime.toFixed(2)}ms
+        Mongo Lookup: ${dbLookupTime.toFixed(2)}ms
+        Mongo Save: ${dbSaveTime.toFixed(2)}ms
+        Mongo Latency: ${mongoLatency.toFixed(2)}ms
+        OTP Gen: ${genTime.toFixed(2)}ms
+        OTP Hash: ${hashTime.toFixed(2)}ms
+        API Response Time (excluding SMS): ${apiResponseTime.toFixed(2)}ms
+      `);
+
       console.log(`[SMS-REQUEST_START] [AuthService.requestOtp] Triggering SMS API request in background...`);
-      this.sendSmsOtp(phone, otp).catch((err) => {
+      this.sendSmsOtp(phone, otp, apiResponseTime).catch((err) => {
         console.error('[SMS-BG-ERROR]', err);
       });
       console.log(`[SMS-REQUEST_END] [AuthService.requestOtp] SMS API trigger completed (dispatched to background).`);
