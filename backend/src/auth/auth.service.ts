@@ -236,7 +236,7 @@ export class AuthService {
 
       let otp: string;
       if (process.env.NODE_ENV === 'test') {
-        otp = '123456';
+        otp = '939188';
       } else {
         otp = crypto.randomInt(100000, 1000000).toString();
       }
@@ -441,7 +441,7 @@ export class AuthService {
     let oldPhoneOtp: string;
     let newPhoneOtp: string;
     if (process.env.NODE_ENV === 'test') {
-      oldPhoneOtp = '123456';
+      oldPhoneOtp = '939188';
       newPhoneOtp = '654321';
     } else {
       oldPhoneOtp = crypto.randomInt(100000, 1000000).toString();

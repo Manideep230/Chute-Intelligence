@@ -26,7 +26,7 @@ export class VerifyOtpDto {
   @IsNotEmpty()
   phone: string;
 
-  @ApiProperty({ description: '6-digit OTP code received', example: '123456' })
+  @ApiProperty({ description: '6-digit OTP code received', example: '939188' })
   @IsString()
   @IsNotEmpty()
   otp: string;

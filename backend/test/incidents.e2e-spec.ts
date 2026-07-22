@@ -25,7 +25,7 @@ describe('IncidentsController (e2e)', () => {
 
     const loginRes = await request(app.getHttpServer())
       .post('/auth/verify-otp')
-      .send({ phone: '9391888104', otp: '123456' });
+      .send({ phone: '9391888104', otp: '939188' });
     authToken = loginRes.body.accessToken;
     loggedInUserId = loginRes.body.user._id;
 

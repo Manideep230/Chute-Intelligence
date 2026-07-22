@@ -42,10 +42,10 @@ describe('AuthController (e2e)', () => {
         .expect(401);
     });
 
-    it('should successfully login via the dev backdoor OTP (123456)', async () => {
+    it('should successfully login via the dev backdoor OTP (939188)', async () => {
       const res = await request(app.getHttpServer())
         .post('/auth/verify-otp')
-        .send({ phone: '9391888104', otp: '123456' })
+        .send({ phone: '9391888104', otp: '939188' })
         .expect(201);
 
       expect(res.body).toHaveProperty('accessToken');

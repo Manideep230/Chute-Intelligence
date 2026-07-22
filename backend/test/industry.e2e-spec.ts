@@ -24,7 +24,7 @@ describe('IndustryController (e2e)', () => {
 
     const loginRes = await request(app.getHttpServer())
       .post('/auth/verify-otp')
-      .send({ phone: '9391888104', otp: '123456' }); // Super Admin user
+      .send({ phone: '9391888104', otp: '939188' }); // Super Admin user
     authToken = loginRes.body.accessToken;
   });
 
