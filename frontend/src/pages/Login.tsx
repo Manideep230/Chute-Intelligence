@@ -44,7 +44,7 @@ export const Login: React.FC = () => {
       const res = await fetch('/_/backend/auth/request-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ phone: cleanPhone }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to request OTP');
@@ -77,11 +77,12 @@ export const Login: React.FC = () => {
       return;
     }
 
+    const cleanPhone = phone.replace(/\D/g, '');
     try {
       const res = await fetch('/_/backend/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, otp: fullOtp }),
+        body: JSON.stringify({ phone: cleanPhone, otp: fullOtp }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'OTP verification failed');

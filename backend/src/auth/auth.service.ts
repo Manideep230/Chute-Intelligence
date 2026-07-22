@@ -65,7 +65,8 @@ export class AuthService {
     plantIdsInput?: string[] | string,
     creator?: any,
   ): Promise<UserDocument> {
-    const existing = await this.userModel.findOne({ phone }).exec();
+    const normalizedPhone = this.normalizePhone(phone);
+    const existing = await this.userModel.findOne({ phone: normalizedPhone }).exec();
     if (existing) {
       throw new BadRequestException('Phone number is already registered');
     }
@@ -141,7 +142,7 @@ export class AuthService {
     const user = new this.userModel({
       ngId,
       name,
-      phone,
+      phone: normalizedPhone,
       role,
       assignedPlantIds,
     });
@@ -235,19 +236,25 @@ export class AuthService {
     return crypto.createHmac('sha256', secret).update(otp).digest('hex');
   }
 
+  private normalizePhone(phone: string): string {
+    if (!phone) return '';
+    const clean = phone.replace(/\D/g, '');
+    return clean.length > 10 ? clean.slice(-10) : clean;
+  }
+
   async requestOtp(phone: string): Promise<{ success: boolean; message: string }> {
     const apiStart = performance.now();
     console.log(`[AUTH_SERVICE_ENTER] [AuthService.requestOtp] Starting OTP flow for ${phone}`);
     try {
       const validationStart = performance.now();
-      const cleanPhone = phone.replace(/\D/g, '');
-      if (cleanPhone.length < 10) {
+      const normalizedPhone = this.normalizePhone(phone);
+      if (normalizedPhone.length < 10) {
         throw new BadRequestException('Invalid phone number format');
       }
       const validationTime = performance.now() - validationStart;
 
       const dbLookupStart = performance.now();
-      let user: any = await this.userModel.findOne({ phone }).exec();
+      let user: any = await this.userModel.findOne({ phone: normalizedPhone }).exec();
       const dbLookupTime = performance.now() - dbLookupStart;
 
       const now = new Date();
@@ -332,7 +339,8 @@ export class AuthService {
     refreshToken: string;
     user: UserDocument;
   }> {
-    const user = await this.userModel.findOne({ phone }).exec();
+    const normalizedPhone = this.normalizePhone(phone);
+    const user = await this.userModel.findOne({ phone: normalizedPhone }).exec();
     if (!user) {
       throw new BadRequestException('User not found');
     }
@@ -479,7 +487,8 @@ export class AuthService {
       throw new BadRequestException('User not found');
     }
 
-    const existing = await this.userModel.findOne({ phone: newPhone }).exec();
+    const normalizedNewPhone = this.normalizePhone(newPhone);
+    const existing = await this.userModel.findOne({ phone: normalizedNewPhone }).exec();
     if (existing) {
       throw new BadRequestException('New phone number is already in use');
     }
