@@ -16,9 +16,13 @@ describe('AdminController (e2e)', () => {
     await app.init();
 
     // Log in as Super Admin to get token
+    await request(app.getHttpServer())
+      .post('/auth/request-otp')
+      .send({ phone: '9391888104' });
+
     const loginRes = await request(app.getHttpServer())
       .post('/auth/verify-otp')
-      .send({ phone: '+919391888104', otp: '123456' })
+      .send({ phone: '9391888104', otp: '123456' })
       .expect(201);
 
     superAdminToken = loginRes.body.accessToken;

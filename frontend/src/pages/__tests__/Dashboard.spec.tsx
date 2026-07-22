@@ -6,15 +6,15 @@ import { Dashboard } from '../Dashboard';
 // Mock the zustand stores
 vi.mock('../../store/authStore', () => ({
   useAuthStore: () => ({
-    user: { _id: '123', name: 'Test Industrial Operator', role: 'Worker', phone: '+919391888104', isActive: true },
+    user: { _id: '123', name: 'Test Industrial Operator', role: 'Worker', phone: '9391888104', isActive: true },
     token: 'mock-access-token',
     logout: vi.fn(),
     updateUser: vi.fn(),
   }),
 }));
 
-vi.mock('../../store/telemetryStore', () => ({
-  useTelemetryStore: () => ({
+vi.mock('../../store/telemetryStore', () => {
+  const mockState = {
     activeChuteId: 'chute_123',
     chuteStatus: 'Normal',
     activePath: 'LEFT_SLANT',
@@ -47,8 +47,11 @@ vi.mock('../../store/telemetryStore', () => ({
     addAlert: vi.fn(),
     commandsList: [],
     fetchCommandsList: vi.fn().mockImplementation(() => Promise.resolve()),
-  }),
-}));
+  };
+  return {
+    useTelemetryStore: (selector?: (state: any) => any) => selector ? selector(mockState) : mockState,
+  };
+});
 
 vi.mock('../../hooks/useRoleAccess', () => ({
   useRoleAccess: () => ({
@@ -66,6 +69,10 @@ vi.mock('../../hooks/useVoiceCommand', () => ({
     startListening: vi.fn(),
   }),
   speakText: vi.fn(),
+}));
+
+vi.mock('../dashboard/hooks/useMqttConnection', () => ({
+  useMqttConnection: vi.fn(),
 }));
 
 // Mock heavy Three.js and Leaflet Map modules
@@ -145,9 +152,9 @@ describe('Dashboard Component (Unit)', () => {
     // Ensure data loaded by waiting for main header
     await screen.findByText(/NIGHA TECH/i);
     
-    // Check live temperature and humidity metrics
-    expect(screen.getByText(/32.5°C/i)).toBeDefined();
-    expect(screen.getByText(/45%/i)).toBeDefined();
-    expect(screen.getAllByText(/110 PSI/i)[0]).toBeDefined();
+    // Check live temperature and humidity metrics inside lazy loaded OperationsGrid
+    expect(await screen.findByText(/32.5°C/i)).toBeDefined();
+    expect(await screen.findByText(/45%/i)).toBeDefined();
+    expect((await screen.findAllByText(/110 PSI/i))[0]).toBeDefined();
   });
 });

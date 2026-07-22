@@ -28,7 +28,7 @@ describe('AuthController (e2e)', () => {
     it('should request an OTP code successfully', () => {
       return request(app.getHttpServer())
         .post('/auth/request-otp')
-        .send({ phone: '+919391888104' })
+        .send({ phone: '9391888104' })
         .expect(201)
         .expect((res) => {
           expect(res.body.message).toBe('OTP sent successfully');
@@ -38,19 +38,19 @@ describe('AuthController (e2e)', () => {
     it('should fail verifying with an incorrect OTP code', () => {
       return request(app.getHttpServer())
         .post('/auth/verify-otp')
-        .send({ phone: '+919391888104', otp: '000000' })
+        .send({ phone: '9391888104', otp: '000000' })
         .expect(401);
     });
 
     it('should successfully login via the dev backdoor OTP (123456)', async () => {
       const res = await request(app.getHttpServer())
         .post('/auth/verify-otp')
-        .send({ phone: '+919391888104', otp: '123456' })
+        .send({ phone: '9391888104', otp: '123456' })
         .expect(201);
 
       expect(res.body).toHaveProperty('accessToken');
       expect(res.body).toHaveProperty('user');
-      expect(res.body.user.phone).toBe('+919391888104');
+      expect(res.body.user.phone).toBe('9391888104');
 
       authToken = res.body.accessToken;
 
@@ -95,7 +95,7 @@ describe('AuthController (e2e)', () => {
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200)
         .expect((res) => {
-          expect(res.body.phone).toBe('+919391888104');
+          expect(res.body.phone).toBe('9391888104');
         });
     });
 

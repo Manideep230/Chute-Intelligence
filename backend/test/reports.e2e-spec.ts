@@ -17,9 +17,13 @@ describe('ReportsController (e2e)', () => {
     await app.init();
 
     // Authenticate
+    await request(app.getHttpServer())
+      .post('/auth/request-otp')
+      .send({ phone: '9391888104' });
+
     const loginRes = await request(app.getHttpServer())
       .post('/auth/verify-otp')
-      .send({ phone: '+919391888104', otp: '123456' });
+      .send({ phone: '9391888104', otp: '123456' });
     authToken = loginRes.body.accessToken;
 
     // Create a mock plant and chute first to link the report to

@@ -18,9 +18,13 @@ describe('IndustryController (e2e)', () => {
     await app.init();
 
     // Acquire authentication token via dev backdoor
+    await request(app.getHttpServer())
+      .post('/auth/request-otp')
+      .send({ phone: '9391888104' });
+
     const loginRes = await request(app.getHttpServer())
       .post('/auth/verify-otp')
-      .send({ phone: '+919391888104', otp: '123456' }); // Super Admin user
+      .send({ phone: '9391888104', otp: '123456' }); // Super Admin user
     authToken = loginRes.body.accessToken;
   });
 

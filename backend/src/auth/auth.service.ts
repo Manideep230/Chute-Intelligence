@@ -152,27 +152,31 @@ export class AuthService {
 
   // Helper to send OTP via SMS API
   private async sendSmsOtp(phone: string, otp: string): Promise<boolean> {
-    let cleanPhone = phone.replace(/\D/g, '');
-    if (cleanPhone.length > 10) {
-      cleanPhone = cleanPhone.slice(-10);
-    }
-    if (cleanPhone.length < 10) {
-      console.warn(`[SMS-API] Invalid phone number length: ${phone}`);
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!cleanPhone) {
+      console.warn(`[SMS-API] Invalid phone number (no digits): ${phone}`);
       return false;
     }
 
-    const secret = process.env.SMS_API_SECRET || 'xledocqmXkNPrTesuqWr';
-    const sender = process.env.SMS_API_SENDER || 'NIGHAI';
-    const tempid = process.env.SMS_API_TEMPLATE_ID || '1207174264191607433';
-    const route = process.env.SMS_API_ROUTE || 'TA';
-    const msgtype = process.env.SMS_API_MSG_TYPE || '1';
-    const sms = `Welcome to Chute Intelligence\nYour OTP for Authentication is ${otp}\nDon't share with anybody\nThank You, Team NighaTech Global Pvt. Ltd.`;
+    const urlBase = process.env.SMS_API_URL || 'https://43.252.88.250/index.php/smsapi/httpapi/';
+    const secret = process.env.SMS_SECRET || 'xledocqmXkNPrTesuqWr';
+    const sender = process.env.SMS_SENDER || 'NIGHAI';
+    const tempid = process.env.SMS_TEMPLATE_ID || '1207174264191607433';
+    const route = process.env.SMS_ROUTE || 'TA';
+    const msgtype = process.env.SMS_MSG_TYPE || '1';
+    
+    const sms = `Welcome to Chute Intelligence App\n\nYour OTP is ${otp}\n\nDon't share with anybody.\n\nTeam NighaTech Global Pvt. Ltd.`;
 
-    const url = `https://43.252.88.250/index.php/smsapi/httpapi/?secret=${secret}&sender=${sender}&tempid=${tempid}&receiver=${cleanPhone}&route=${route}&msgtype=${msgtype}&sms=${encodeURIComponent(sms)}`;
+    let url = urlBase;
+    if (!url.endsWith('/') && !url.includes('?')) {
+      url += '/';
+    }
+    const separator = url.includes('?') ? '&' : '?';
+    const finalUrl = `${url}${separator}secret=${secret}&sender=${sender}&tempid=${tempid}&receiver=${cleanPhone}&route=${route}&msgtype=${msgtype}&sms=${encodeURIComponent(sms)}`;
 
     return new Promise((resolve) => {
       const req = https.get(
-        url,
+        finalUrl,
         { rejectUnauthorized: false, timeout: 5000 },
         (res) => {
           let data = '';
@@ -201,9 +205,19 @@ export class AuthService {
     });
   }
 
-  async requestOtp(phone: string): Promise<{ message: string; otp?: string }> {
+  private hashOtp(otp: string): string {
+    const secret = process.env.OTP_SECRET || 'nigha-default-otp-secret';
+    return crypto.createHmac('sha256', secret).update(otp).digest('hex');
+  }
+
+  async requestOtp(phone: string): Promise<{ success: boolean; message: string }> {
     console.log(`[AUTH_SERVICE_ENTER] [AuthService.requestOtp] Starting OTP flow for ${phone}`);
     try {
+      const cleanPhone = phone.replace(/\D/g, '');
+      if (cleanPhone.length < 10) {
+        throw new BadRequestException('Invalid phone number format');
+      }
+
       console.log(`[DATABASE_QUERY_START] [AuthService.requestOtp] Finding user by phone...`);
       let user: any = await this.userModel.findOne({ phone }).exec();
       console.log(`[DATABASE_QUERY_END] [AuthService.requestOtp] User lookup complete. Found: ${!!user}`);
@@ -212,30 +226,47 @@ export class AuthService {
         user = await this.register('New User', phone, 'Worker');
       }
 
-      // Generate 6 digit OTP to match DLT registered template ID
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const now = new Date();
+      if (user.otpLastSent && process.env.NODE_ENV !== 'test') {
+        const timeDiff = now.getTime() - new Date(user.otpLastSent).getTime();
+        if (timeDiff < 60 * 1000) {
+          throw new BadRequestException('Please wait 60 seconds before requesting another OTP');
+        }
+      }
+
+      let otp: string;
+      if (process.env.NODE_ENV === 'test') {
+        otp = '123456';
+      } else {
+        otp = crypto.randomInt(100000, 1000000).toString();
+      }
+      
       console.log(`[OTP_GENERATED] [AuthService.requestOtp] Generated OTP.`);
       const expires = new Date(Date.now() + 5 * 60 * 1000); // 5 mins expiry
 
-      user.otp = otp;
+      user.otp = this.hashOtp(otp);
       user.otpExpires = expires;
+      user.otpAttempts = 0;
+      user.otpLastSent = now;
       
       console.log(`[DATABASE_WRITE_START] [AuthService.requestOtp] Saving OTP to user...`);
       await user.save();
       console.log(`[DATABASE_WRITE_END] [AuthService.requestOtp] Saved OTP successfully.`);
 
-      // Log to console
-      console.log(`[SMS-MOCK] OTP for login of ${phone} is: ${otp}`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[SMS-MOCK] OTP for login of ${phone} is: ${otp}`);
+      } else {
+        console.log(`[SMS-SENT] OTP sent successfully to registered mobile number.`);
+      }
 
-      // Trigger SMS sending
       console.log(`[SMS-REQUEST_START] [AuthService.requestOtp] Triggering SMS API request...`);
       await this.sendSmsOtp(phone, otp);
       console.log(`[SMS-REQUEST_END] [AuthService.requestOtp] SMS API trigger completed.`);
 
       console.log(`[RESPONSE_SENT] [AuthService.requestOtp] Returning response.`);
       return {
+        success: true,
         message: 'OTP sent successfully',
-        otp: process.env.NODE_ENV === 'production' ? undefined : otp,
       };
     } catch (err: any) {
       console.error(`[ERROR] [AuthService.requestOtp] Error:`, err);
@@ -259,28 +290,29 @@ export class AuthService {
       throw new BadRequestException('User not found');
     }
 
-    const demoOtp =
-      process.env.DEMO_OTP ||
-      (process.env.NODE_ENV === 'test' ? '123456' : '778899');
-    const isTestOtp = otp === demoOtp;
-    if (
-      !isTestOtp &&
-      (!user.otp ||
-        user.otp !== otp ||
-        !user.otpExpires ||
-        new Date() > user.otpExpires)
-    ) {
+    if ((user.otpAttempts || 0) >= 3) {
+      throw new UnauthorizedException('Maximum verification attempts exceeded. Please request a new OTP.');
+    }
+
+    if (!user.otp || !user.otpExpires || new Date() > user.otpExpires) {
       throw new UnauthorizedException('Invalid or expired OTP');
     }
 
-    // Check if account is suspended
+    const enteredHash = this.hashOtp(otp);
+    if (user.otp !== enteredHash) {
+      user.otpAttempts = (user.otpAttempts || 0) + 1;
+      await user.save();
+      throw new UnauthorizedException('Invalid or expired OTP');
+    }
+
     if (!user.isActive) {
       throw new UnauthorizedException('Account is suspended');
     }
 
-    // Clear OTP
+    // Clear OTP immediately to prevent reuse / replay attacks
     user.otp = null;
     user.otpExpires = null;
+    user.otpAttempts = 0;
     await user.save();
 
     // Access token (unlimited/persistent: 20 years)
@@ -394,7 +426,7 @@ export class AuthService {
   async requestPhoneChange(
     userId: string,
     newPhone: string,
-  ): Promise<{ message: string }> {
+  ): Promise<{ success: boolean; message: string }> {
     const user = await this.userModel.findById(userId).exec();
     if (!user) {
       throw new BadRequestException('User not found');
@@ -405,38 +437,45 @@ export class AuthService {
       throw new BadRequestException('New phone number is already in use');
     }
 
-    // Generate two OTPs (6 digits to match SMS template)
-    const oldPhoneOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    const newPhoneOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate two OTPs securely
+    let oldPhoneOtp: string;
+    let newPhoneOtp: string;
+    if (process.env.NODE_ENV === 'test') {
+      oldPhoneOtp = '123456';
+      newPhoneOtp = '654321';
+    } else {
+      oldPhoneOtp = crypto.randomInt(100000, 1000000).toString();
+      newPhoneOtp = crypto.randomInt(100000, 1000000).toString();
+    }
     const expires = new Date(Date.now() + 5 * 60 * 1000);
 
-    user.otp = oldPhoneOtp; // OTP for old phone
+    user.otp = this.hashOtp(oldPhoneOtp); // OTP for old phone
     user.otpExpires = expires;
+    user.otpAttempts = 0;
 
     user.tempNewPhone = newPhone;
-    user.tempPhoneOtp = newPhoneOtp; // OTP for new phone
+    user.tempPhoneOtp = this.hashOtp(newPhoneOtp); // OTP for new phone
     user.tempPhoneOtpExpires = expires;
 
     await user.save();
 
-    console.log(
-      `[SMS-MOCK] OTP for OLD phone (${user.phone}) change verification: ${oldPhoneOtp}`,
-    );
-    console.log(
-      `[SMS-MOCK] OTP for NEW phone (${newPhone}) change verification: ${newPhoneOtp}`,
-    );
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(
+        `[SMS-MOCK] OTP for OLD phone (${user.phone}) change verification: ${oldPhoneOtp}`,
+      );
+      console.log(
+        `[SMS-MOCK] OTP for NEW phone (${newPhone}) change verification: ${newPhoneOtp}`,
+      );
+    }
 
     // Trigger SMS sending to both old and new phone numbers
     await this.sendSmsOtp(user.phone, oldPhoneOtp);
     await this.sendSmsOtp(newPhone, newPhoneOtp);
 
     return {
+      success: true,
       message: 'Verification OTPs sent to both old and new numbers',
-      oldPhoneOtp:
-        process.env.NODE_ENV === 'production' ? undefined : oldPhoneOtp,
-      newPhoneOtp:
-        process.env.NODE_ENV === 'production' ? undefined : newPhoneOtp,
-    } as any;
+    };
   }
 
   // Verify phone change with dual OTPs
@@ -457,7 +496,7 @@ export class AuthService {
     const now = new Date();
     if (
       !user.otp ||
-      user.otp !== oldPhoneOtp ||
+      user.otp !== this.hashOtp(oldPhoneOtp) ||
       !user.otpExpires ||
       now > user.otpExpires
     ) {
@@ -468,7 +507,7 @@ export class AuthService {
 
     if (
       !user.tempPhoneOtp ||
-      user.tempPhoneOtp !== newPhoneOtp ||
+      user.tempPhoneOtp !== this.hashOtp(newPhoneOtp) ||
       !user.tempPhoneOtpExpires ||
       now > user.tempPhoneOtpExpires
     ) {
@@ -483,6 +522,7 @@ export class AuthService {
     user.phone = newPhone;
     user.otp = null;
     user.otpExpires = null;
+    user.otpAttempts = 0;
     user.tempNewPhone = null;
     user.tempPhoneOtp = null;
     user.tempPhoneOtpExpires = null;

@@ -41,6 +41,12 @@ export class User {
   @Prop({ type: Date, default: null })
   otpExpires: Date | null;
 
+  @Prop({ type: Number, default: 0 })
+  otpAttempts: number;
+
+  @Prop({ type: Date, default: null })
+  otpLastSent: Date | null;
+
   @Prop({ type: String, default: null })
   tempNewPhone: string | null;
 

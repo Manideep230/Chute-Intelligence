@@ -46,7 +46,7 @@ export class AuthController {
   })
   @ApiResponse({
     status: 201,
-    description: 'OTP code generated and logged to console.',
+    description: 'OTP successfully sent to the registered mobile number.',
   })
   @ApiResponse({ status: 400, description: 'Bad Request — Invalid phone number' })
   async requestOtp(@Body() body: RequestOtpDto) {
@@ -188,7 +188,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Request phone number change (Dual OTP generation)',
   })
-  @ApiResponse({ status: 200, description: 'OTP codes generated for verification.' })
+  @ApiResponse({ status: 200, description: 'Verification OTPs successfully sent to both numbers.' })
   @ApiResponse({ status: 400, description: 'Bad Request — New phone number is already registered' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async requestPhoneChange(

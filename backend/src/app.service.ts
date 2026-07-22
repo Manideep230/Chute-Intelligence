@@ -224,7 +224,7 @@ export class AppService implements OnModuleInit {
     // 3. Seed Default Users
     // Clean up any other user having the target admin phone to prevent duplicate key violations on start
     await this.userModel.deleteMany({
-      phone: '+919391888104',
+      phone: '9391888104',
       role: { $ne: 'Super Admin' }
     }).exec();
 
@@ -234,7 +234,7 @@ export class AppService implements OnModuleInit {
       superAdmin = await this.userModel.create({
         ngId: 'NGSA000001',
         name: 'Super Admin',
-        phone: '+919391888104',
+        phone: '9391888104',
         role: 'Super Admin',
         isActive: true,
         organizationId: defaultOrg._id,
@@ -242,9 +242,9 @@ export class AppService implements OnModuleInit {
       });
     } else {
       let isModified = false;
-      if (superAdmin.phone !== '+919391888104') {
-        this.logger.log('Updating default Super Admin phone number to +919391888104...');
-        superAdmin.phone = '+919391888104';
+      if (superAdmin.phone !== '9391888104') {
+        this.logger.log('Updating default Super Admin phone number to 9391888104...');
+        superAdmin.phone = '9391888104';
         isModified = true;
       }
       if (superAdmin.name !== 'Super Admin') {
@@ -256,13 +256,18 @@ export class AppService implements OnModuleInit {
       }
     }
 
-    let workerUser = await this.userModel.findOne({ phone: '+918888888888' }).exec();
+    await this.userModel.deleteMany({
+      phone: '8888888888',
+      ngId: { $ne: 'NGNEV000001' }
+    }).exec();
+
+    let workerUser = await this.userModel.findOne({ ngId: 'NGNEV000001' }).exec();
     if (!workerUser && seededPlant) {
       this.logger.log('Seeding default Worker Tech...');
       workerUser = await this.userModel.create({
         ngId: 'NGNEV000001',
         name: 'Worker Tech',
-        phone: '+918888888888',
+        phone: '8888888888',
         role: 'Worker',
         isActive: true,
         organizationId: defaultOrg._id,
@@ -286,6 +291,12 @@ export class AppService implements OnModuleInit {
         } catch (e) {
           this.logger.warn(`Could not seed assignment: ${e.message}`);
         }
+      }
+    } else if (workerUser) {
+      if (workerUser.phone !== '8888888888') {
+        this.logger.log('Updating default Worker Tech phone number to 8888888888...');
+        workerUser.phone = '8888888888';
+        await workerUser.save();
       }
     }
   }
