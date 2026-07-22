@@ -140,13 +140,12 @@ export const Login: React.FC = () => {
         minHeight: '100vh',
         background: '#040814',
         color: '#E2E8F0',
-        fontFamily: "'Outfit', 'Inter', sans-serif",
+        fontFamily: 'var(--font-sans)',
         overflow: 'hidden',
         position: 'relative'
       }}
     >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Share+Tech+Mono&display=swap');
         
         .ambient-orb {
           position: absolute;
@@ -192,7 +191,7 @@ export const Login: React.FC = () => {
           font-weight: 700;
           text-align: center;
           outline: none;
-          font-family: 'Share Tech Mono', monospace;
+          font-family: var(--font-mono);
           transition: all 0.2s ease;
         }
         .segmented-input:focus {
@@ -371,7 +370,7 @@ export const Login: React.FC = () => {
                     required
                     slotProps={{
                       input: {
-                        style: { color: 'white', background: 'rgba(0,0,0,0.3)', fontFamily: "'Share Tech Mono', monospace", letterSpacing: '1px' }
+                        style: { color: 'white', background: 'rgba(0,0,0,0.3)', fontFamily: 'var(--font-mono)', letterSpacing: '1px' }
                       }
                     }}
                     sx={{
