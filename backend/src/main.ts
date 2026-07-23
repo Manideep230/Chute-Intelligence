@@ -21,17 +21,36 @@ async function bootstrap() {
   // Enable cookie parsing
   app.use(cookieParser());
 
+  // Rewrite /_/backend prefix so direct requests to NestJS server match controllers
+  app.use((req: any, _res: any, next: any) => {
+    if (req.url && req.url.startsWith('/_/backend')) {
+      req.url = req.url.replace(/^\/_\/backend/, '') || '/';
+    }
+    next();
+  });
+
   // Register global input sanitization interceptor
   app.useGlobalInterceptors(new SanitizationInterceptor());
 
   // Enable CORS with environment-based whitelist
   const corsWhitelist = process.env.CORS_WHITELIST
     ? process.env.CORS_WHITELIST.split(',')
-    : ['http://localhost:5173', 'http://localhost:4173'];
+    : [
+        'http://localhost:5173',
+        'http://localhost:4173',
+        'http://localhost:5000',
+        'http://localhost:3000',
+        'http://127.0.0.1:5173',
+        'http://127.0.0.1:5000',
+      ];
 
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || corsWhitelist.includes(origin)) {
+      if (
+        !origin ||
+        process.env.NODE_ENV !== 'production' ||
+        corsWhitelist.includes(origin)
+      ) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
