@@ -19,7 +19,7 @@ const mongoUri =
 @Module({
   imports: [
     MongooseModule.forRoot(mongoUri, {
-      maxPoolSize: process.env.VERCEL ? 1 : 10,
+      maxPoolSize: 10,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 30000,
       connectTimeoutMS: 10000,
