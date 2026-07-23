@@ -1,3 +1,13 @@
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+import * as fs from 'fs';
+
+// Try loading from current directory first, then parent directory
+const localEnvPath = path.resolve(process.cwd(), '.env');
+const parentEnvPath = path.resolve(process.cwd(), '../.env');
+const envPath = fs.existsSync(localEnvPath) ? localEnvPath : parentEnvPath;
+dotenv.config({ path: envPath });
+
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
