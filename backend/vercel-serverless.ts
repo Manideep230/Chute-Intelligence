@@ -4,6 +4,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './src/app.module';
 import { setupSwagger } from './src/swagger.config';
 
+import cookieParser from 'cookie-parser';
+import { SanitizationInterceptor } from './src/common/interceptors/sanitization.interceptor';
+
 // Use require statement inside function context to bypass top-level ESM conflicts
 const getExpressApp = () => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -20,7 +23,24 @@ const bootstrap = async () => {
   const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
   console.log(`[NEST_FACTORY_CREATE_COMPLETED] [${new Date().toISOString()}] NestFactory created app in ${Date.now() - startTime}ms.`);
   
-  app.enableCors();
+  // Enable cookie parsing
+  app.use(cookieParser());
+
+  // Rewrite /_/backend prefix so Vercel requests match NestJS controllers
+  app.use((req: any, _res: any, next: any) => {
+    if (req.url && req.url.startsWith('/_/backend')) {
+      req.url = req.url.replace(/^\/_\/backend/, '') || '/';
+    }
+    next();
+  });
+
+  // Register global input sanitization interceptor
+  app.useGlobalInterceptors(new SanitizationInterceptor());
+
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
 
   // Global Validation Pipe (match main.ts behaviour)
   app.useGlobalPipes(

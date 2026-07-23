@@ -311,11 +311,11 @@ export class AuthService {
         API Response Time (excluding SMS): ${apiResponseTime.toFixed(2)}ms
       `);
 
-      console.log(`[SMS-REQUEST_START] [AuthService.requestOtp] Triggering SMS API request in background...`);
-      this.sendSmsOtp(phone, otp, apiResponseTime).catch((err) => {
-        console.error('[SMS-BG-ERROR]', err);
+      console.log(`[SMS-REQUEST_START] [AuthService.requestOtp] Dispatching SMS API request...`);
+      await this.sendSmsOtp(normalizedPhone, otp, apiResponseTime).catch((err) => {
+        console.error('[SMS-ERROR]', err);
       });
-      console.log(`[SMS-REQUEST_END] [AuthService.requestOtp] SMS API trigger completed (dispatched to background).`);
+      console.log(`[SMS-REQUEST_END] [AuthService.requestOtp] SMS API dispatch completed.`);
 
       console.log(`[RESPONSE_SENT] [AuthService.requestOtp] Returning response.`);
       return {
