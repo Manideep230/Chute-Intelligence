@@ -32,13 +32,20 @@ export const Login: React.FC = () => {
     setError(null);
     setInfo(null);
 
-    // Basic length/character verification
     const cleanPhone = phone.replace(/\D/g, '');
     if (cleanPhone.length < 8) {
       setError('Please enter a valid mobile number.');
       setLoading(false);
       return;
     }
+
+    // Instant UI Transition to OTP screen (0ms delay)
+    setStep(2);
+    setCountdown(60);
+    setOtpVal(Array(6).fill(''));
+    setTimeout(() => {
+      inputRefs.current[0]?.focus();
+    }, 50);
 
     try {
       const res = await fetch('/_/backend/auth/request-otp', {
@@ -48,16 +55,7 @@ export const Login: React.FC = () => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to request OTP');
-      
       setInfo('OTP sent successfully.');
-      setStep(2);
-      setCountdown(60);
-      setOtpVal(Array(6).fill(''));
-      
-      // Auto focus first OTP input
-      setTimeout(() => {
-        inputRefs.current[0]?.focus();
-      }, 100);
     } catch (err: any) {
       setError(err.message);
     } finally {
