@@ -188,20 +188,6 @@ export class AuthService {
     const smsStart = performance.now();
 
     return new Promise((resolve) => {
-      let isDone = false;
-      const finish = (val: boolean) => {
-        if (!isDone) {
-          isDone = true;
-          resolve(val);
-        }
-      };
-
-      // In production / serverless, resolve within 500ms max so API returns fast
-      // while the socket finishes delivering the request over TCP/TLS
-      const earlyTimer = process.env.NODE_ENV === 'test' ? null : setTimeout(() => {
-        finish(true);
-      }, 500);
-
       const req = https.get(
         finalUrl,
         { agent: keepAliveAgent, timeout: 5000 },
@@ -211,7 +197,6 @@ export class AuthService {
             data += chunk;
           });
           res.on('end', () => {
-            if (earlyTimer) clearTimeout(earlyTimer);
             const smsLatency = performance.now() - smsStart;
             if (process.env.NODE_ENV !== 'test') {
               console.log(
@@ -222,28 +207,26 @@ export class AuthService {
                 console.log(`[LATENCY-REPORT-E2E] End-to-End Latency: ${e2e.toFixed(2)}ms`);
               }
             }
-            finish(true);
+            resolve(true);
           });
         },
       );
 
       req.on('timeout', () => {
-        if (earlyTimer) clearTimeout(earlyTimer);
         const smsLatency = performance.now() - smsStart;
         if (process.env.NODE_ENV !== 'test') {
           console.warn(`[SMS-API-TIMEOUT] SMS gateway request timed out after ${smsLatency.toFixed(2)}ms`);
         }
         req.destroy();
-        finish(false);
+        resolve(false);
       });
 
       req.on('error', (err) => {
-        if (earlyTimer) clearTimeout(earlyTimer);
         const smsLatency = performance.now() - smsStart;
         if (process.env.NODE_ENV !== 'test') {
           console.error(`[SMS-API-ERROR] SMS gateway request failed after ${smsLatency.toFixed(2)}ms:`, err);
         }
-        finish(false);
+        resolve(false);
       });
     });
   }
